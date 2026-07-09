@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "659837143296",
+    "project_id": "lab3-3fa6a",
+    "storage_bucket": "lab3-3fa6a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:659837143296:android:c0b5e61562d86509708be5",
+        "android_client_info": {
+          "package_name": "com.prm393.journal_trend_analyzer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN_Kpm4l69FSb_9DqMpojFpvUSva0tWPU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
