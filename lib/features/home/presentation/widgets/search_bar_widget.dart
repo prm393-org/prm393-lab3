@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../shared/presentation/cubit/pending_search_cubit.dart';
+import '../../../shared/presentation/viewmodels/pending_search_viewmodel.dart';
 
-class SearchBarWidget extends StatefulWidget {
+class SearchBarWidget extends ConsumerStatefulWidget {
   final ValueChanged<String> onSearch;
   final String hintText;
 
@@ -18,10 +17,10 @@ class SearchBarWidget extends StatefulWidget {
   });
 
   @override
-  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+  ConsumerState<SearchBarWidget> createState() => _SearchBarWidgetState();
 }
 
-class _SearchBarWidgetState extends State<SearchBarWidget> {
+class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   static const List<String> _sampleTopics = [
     'Machine Learning',
     'Deep Learning',
@@ -77,12 +76,11 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 
   void _onTextChanged() => _overlayEntry?.markNeedsBuild();
 
-  List<String> _loadRecents() {
-    if (!GetIt.I.isRegistered<SharedPreferences>()) return [];
-    return GetIt.I<SharedPreferences>()
-            .getStringList(AppConstants.prefRecentSearches) ??
-        [];
-  }
+  List<String> _loadRecents() =>
+      ref
+          .read(sharedPreferencesProvider)
+          .getStringList(AppConstants.prefRecentSearches) ??
+      [];
 
   List<String> _buildSuggestions(List<String> recents) {
     final q = _controller.text.trim().toLowerCase();
@@ -182,21 +180,20 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     final borderColor =
         isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1);
 
-    return BlocListener<PendingSearchCubit, String?>(
-      listenWhen: (_, current) => current != null,
-      listener: (context, query) {
-        if (query == null) return;
-        // Yêu cầu tìm từ nơi khác (vd: lịch sử ở Profile): điền sẵn & tìm.
-        _controller.text = query;
-        _focusNode.unfocus();
-        widget.onSearch(query);
-        context.read<PendingSearchCubit>().clear();
-      },
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: _submit,
-        textInputAction: TextInputAction.search,
+    // Yêu cầu tìm từ nơi khác (vd: lịch sử ở Profile): điền sẵn & tìm.
+    ref.listen<String?>(pendingSearchProvider, (_, query) {
+      if (query == null) return;
+      _controller.text = query;
+      _focusNode.unfocus();
+      widget.onSearch(query);
+      ref.read(pendingSearchProvider.notifier).clear();
+    });
+
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      onSubmitted: _submit,
+      textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: widget.hintText,
         prefixIcon: const Icon(Icons.search),
@@ -227,7 +224,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
           borderSide: BorderSide(color: cs.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        ),
       ),
     );
   }

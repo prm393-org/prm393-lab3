@@ -1,10 +1,10 @@
 import 'package:go_router/go_router.dart';
 
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/journal/presentation/pages/journal_page.dart';
-import '../../features/journal/presentation/pages/publication_detail_page.dart';
-import '../../features/keywords/presentation/pages/research_dashboard_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/journal/presentation/screens/journal_screen.dart';
+import '../../features/journal/presentation/screens/publication_detail_screen.dart';
+import '../../features/keywords/presentation/screens/research_dashboard_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/publication/domain/entities/work.dart';
 import '../navigation/main_scaffold.dart';
 
@@ -22,7 +22,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomePage(),
+                builder: (context, state) => const HomeScreen(),
               ),
             ],
           ),
@@ -30,7 +30,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) => const JournalPage(),
+                builder: (context, state) => const JournalScreen(),
                 routes: [
                   GoRoute(
                     path: 'detail/:workId',
@@ -38,7 +38,7 @@ class AppRouter {
                       final workId = state.pathParameters['workId']!;
                       final preview =
                           state.extra is Work ? state.extra as Work : null;
-                      return PublicationDetailPage(
+                      return PublicationDetailScreen(
                         workId: workId,
                         preview: preview,
                       );
@@ -52,7 +52,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/keywords',
-                builder: (context, state) => const ResearchDashboardPage(),
+                builder: (context, state) => const ResearchDashboardScreen(),
               ),
             ],
           ),
@@ -60,7 +60,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) => const ProfilePage(),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../cubit/home_state.dart';
+import '../viewmodels/home_state.dart';
 
 /// Hàng chip lọc topic: Phổ biến / Ảnh hưởng / Chất lượng / Theo lĩnh vực.
 class TopicFilterBar extends StatelessWidget {
