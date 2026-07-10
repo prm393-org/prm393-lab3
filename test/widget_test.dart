@@ -1,41 +1,47 @@
-import 'package:dio/dio.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:journal_trend_analyzer/app.dart';
-import 'package:journal_trend_analyzer/core/di/injection.dart';
 import 'package:journal_trend_analyzer/core/error/failures.dart';
-import 'package:journal_trend_analyzer/core/network/api_client.dart';
-import 'package:journal_trend_analyzer/features/home/presentation/cubit/home_cubit.dart';
+import 'package:journal_trend_analyzer/core/providers/core_providers.dart';
 import 'package:journal_trend_analyzer/features/profile/domain/entities/user_settings.dart';
 import 'package:journal_trend_analyzer/features/profile/domain/repositories/profile_repository.dart';
-import 'package:journal_trend_analyzer/features/profile/presentation/cubit/profile_cubit.dart';
+import 'package:journal_trend_analyzer/features/profile/providers/profile_providers.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/entities/paged.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/entities/topic.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/entities/trend_point.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/entities/work.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/repositories/publication_repository.dart';
-import 'package:journal_trend_analyzer/features/publication/domain/usecases/search_topics.dart';
-import 'package:journal_trend_analyzer/features/shared/presentation/cubit/selected_topic_cubit.dart';
+import 'package:journal_trend_analyzer/features/publication/providers/publication_providers.dart';
 
 void main() {
-  setUp(() async {
-    await getIt.reset();
-    final repository = _InMemoryPublicationRepository();
-    getIt.registerSingleton<SelectedTopicCubit>(SelectedTopicCubit());
-    getIt.registerFactory<HomeCubit>(() => HomeCubit(SearchTopics(repository)));
-    getIt.registerLazySingleton<ProfileCubit>(
-      () => ProfileCubit(_InMemoryProfileRepository(), ApiClient(Dio())),
-    );
-  });
+  late SharedPreferences prefs;
 
-  tearDown(() => getIt.reset());
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   testWidgets('App starts and shows setup placeholder page', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const App());
+    await tester.pumpWidget(
+      ProviderScope(
+        // Thay repository thật bằng bản in-memory: chỉ cần override ở tầng
+        // repository, mọi use case phía trên tự lấy theo.
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          publicationRepositoryProvider
+              .overrideWithValue(_InMemoryPublicationRepository()),
+          profileRepositoryProvider
+              .overrideWithValue(_InMemoryProfileRepository()),
+        ],
+        child: const App(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(MaterialApp), findsOneWidget);

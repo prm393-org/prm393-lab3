@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'core/di/injection.dart';
-import 'firebase/crashlytics_service.dart';
+import 'core/providers/core_providers.dart';
+import 'firebase/firebase_providers.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,11 +19,22 @@ Future<void> main() async {
   // Nạp biến môi trường (.env). Không bắt buộc có key — user nhập trong Settings.
   await dotenv.load(fileName: '.env').catchError((_) {});
 
-  // Cấu hình dependency injection (get_it).
-  await configureDependencies();
+  // SharedPreferences là dependency bất đồng bộ duy nhất; nạp ở đây rồi tiêm
+  // vào Riverpod qua override, để mọi provider khác dựng được đồng bộ.
+  final prefs = await SharedPreferences.getInstance();
 
-  // Hứng mọi lỗi Flutter/isolate chưa bắt được. Đặt sau DI vì cần service.
-  getIt<CrashlyticsService>().registerGlobalHandlers();
+  final container = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
 
-  runApp(const App());
+  container.read(crashlyticsServiceProvider).registerGlobalHandlers();
+  container.read(messagingServiceProvider).init();
+  await container.read(remoteConfigServiceProvider).init();
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const App(),
+    ),
+  );
 }

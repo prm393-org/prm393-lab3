@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../cubit/journal_state.dart';
+import '../viewmodels/journal_state.dart';
 
 /// Thanh bộ lọc: nút "Bộ lọc" (chọn năm), chip năm đang chọn (xoá được),
 /// và menu sắp xếp — bố cục theo thiết kế.
