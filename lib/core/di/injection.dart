@@ -10,6 +10,12 @@ import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../../features/profile/di/profile_di.dart';
 import '../../features/publication/di/publication_di.dart';
+import '../../firebase/analytics_service.dart';
+import '../../firebase/auth_service.dart';
+import '../../firebase/crashlytics_service.dart';
+import '../../firebase/messaging_service.dart';
+import '../../firebase/remote_config_service.dart';
+import '../../firebase/storage_service.dart';
 
 /// Service locator toàn cục.
 final GetIt getIt = GetIt.instance;
@@ -44,6 +50,18 @@ Future<void> configureDependencies() async {
     );
     return client;
   });
+
+  // Firebase services
+  getIt.registerLazySingleton<AuthService>(() => AuthService());
+  getIt.registerLazySingleton<AnalyticsService>(() => AnalyticsService());
+  getIt.registerLazySingleton<CrashlyticsService>(() => CrashlyticsService());
+  getIt.registerLazySingleton<StorageService>(() => StorageService());
+  getIt.registerLazySingleton<MessagingService>(() => MessagingService());
+  getIt.registerSingleton<RemoteConfigService>(RemoteConfigService());
+
+  // Nạp default trước khi UI đọc giá trị; fetch từ server chạy nền.
+  await getIt<RemoteConfigService>().init();
+  getIt<MessagingService>().init();
 
   // Features
   initProfileFeature(getIt);

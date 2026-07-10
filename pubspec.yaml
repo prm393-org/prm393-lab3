@@ -47,6 +47,13 @@ dependencies:
   intl: ^0.20.2
   connectivity_plus: ^7.1.1
   firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  google_sign_in: ^7.2.0
+  firebase_storage: ^13.4.3
+  firebase_messaging: ^16.4.1
+  firebase_analytics: ^12.4.3
+  firebase_crashlytics: ^5.2.4
+  firebase_remote_config: ^6.5.3
 
 dev_dependencies:
   flutter_test:

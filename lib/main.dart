@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'firebase/crashlytics_service.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -18,6 +19,9 @@ Future<void> main() async {
 
   // Cấu hình dependency injection (get_it).
   await configureDependencies();
+
+  // Hứng mọi lỗi Flutter/isolate chưa bắt được. Đặt sau DI vì cần service.
+  getIt<CrashlyticsService>().registerGlobalHandlers();
 
   runApp(const App());
 }
