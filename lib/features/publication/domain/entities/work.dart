@@ -11,6 +11,7 @@ class Work extends Equatable {
   final String? type;
   final int citedByCount;
   final List<Author> authors;
+  final String? sourceId;
   final String? sourceName;
   final String? abstract_;
   final bool isOpenAccess;
@@ -35,6 +36,7 @@ class Work extends Equatable {
     this.type,
     required this.citedByCount,
     required this.authors,
+    this.sourceId,
     this.sourceName,
     this.abstract_,
     required this.isOpenAccess,
@@ -58,9 +60,8 @@ class Work extends Equatable {
     if (volume != null && volume!.isNotEmpty) parts.add('Vol. $volume');
     if (issue != null && issue!.isNotEmpty) parts.add('No. $issue');
     if (firstPage != null && firstPage!.isNotEmpty) {
-      final pages = lastPage != null &&
-              lastPage!.isNotEmpty &&
-              lastPage != firstPage
+      final pages =
+          lastPage != null && lastPage!.isNotEmpty && lastPage != firstPage
           ? '$firstPage–$lastPage'
           : firstPage!;
       parts.add('pp. $pages');

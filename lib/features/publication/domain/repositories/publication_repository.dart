@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/paged.dart';
+import '../entities/journal_summary.dart';
 import '../entities/topic.dart';
 import '../entities/trend_point.dart';
 import '../entities/work.dart';
@@ -30,4 +31,19 @@ abstract class PublicationRepository {
 
   /// Chi tiết đầy đủ một bài báo theo OpenAlex work ID.
   Future<Either<Failure, Work>> getWorkById(String workId);
+
+  Future<Either<Failure, List<JournalSummary>>> getJournalsByTopic({
+    required String topicId,
+    int limit = 10,
+  });
+
+  Future<Either<Failure, JournalSummary>> getJournalById(String journalId);
+
+  Future<Either<Failure, Paged<Work>>> getWorksByJournal({
+    required String journalId,
+    String? topicId,
+    int page = 1,
+    int perPage = 20,
+    String sort = 'cited_by_count:desc',
+  });
 }

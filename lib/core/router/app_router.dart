@@ -2,10 +2,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/journal/presentation/screens/journal_screen.dart';
+import '../../features/journal/presentation/screens/journal_detail_screen.dart';
 import '../../features/journal/presentation/screens/publication_detail_screen.dart';
 import '../../features/keywords/presentation/screens/research_dashboard_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/publication/domain/entities/work.dart';
+import '../../features/publication/domain/entities/journal_summary.dart';
 import '../navigation/main_scaffold.dart';
 
 class AppRouter {
@@ -36,13 +38,42 @@ class AppRouter {
                     path: 'detail/:workId',
                     builder: (context, state) {
                       final workId = state.pathParameters['workId']!;
-                      final preview =
-                          state.extra is Work ? state.extra as Work : null;
+                      final preview = state.extra is Work
+                          ? state.extra as Work
+                          : null;
                       return PublicationDetailScreen(
                         workId: workId,
                         preview: preview,
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'journal-detail/:journalId',
+                    builder: (context, state) {
+                      final journalId = state.pathParameters['journalId']!;
+                      final preview = state.extra is JournalSummary
+                          ? state.extra as JournalSummary
+                          : null;
+                      return JournalDetailScreen(
+                        journalId: journalId,
+                        preview: preview,
+                      );
+                    },
+                    routes: [
+                      GoRoute(
+                        path: 'publication/:workId',
+                        builder: (context, state) {
+                          final workId = state.pathParameters['workId']!;
+                          final preview = state.extra is Work
+                              ? state.extra as Work
+                              : null;
+                          return PublicationDetailScreen(
+                            workId: workId,
+                            preview: preview,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
