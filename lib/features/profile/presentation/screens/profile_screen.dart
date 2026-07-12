@@ -7,6 +7,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/data/recent_searches_store.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../firebase/firebase_providers.dart';
 import '../../../publication/domain/usecases/search_topics.dart';
 import '../../../shared/presentation/viewmodels/pending_search_viewmodel.dart';
 import '../../../shared/presentation/viewmodels/selected_topic_viewmodel.dart';
@@ -266,6 +267,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _confirmSignOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('You will need to sign in again to use the app.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await _viewModel.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -285,6 +309,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
 
     final state = ref.watch(profileViewModelProvider);
+    final authUser = ref.watch(authStateProvider).asData?.value;
     _syncFields(state);
     final settings = state.settings;
     final isSaving = state.status == ProfileStatus.saving;
@@ -294,7 +319,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
           backgroundColor: pageBg,
           appBar: AppBar(
-            title: const Text('Settings'),
+            title: const Text('Profile'),
             backgroundColor: pageBg,
             elevation: 0,
             scrolledUnderElevation: 0,
@@ -304,6 +329,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                   children: [
+                    if (authUser != null) ...[
+                      _UserHeader(
+                        photoUrl: authUser.photoURL,
+                        displayName: authUser.displayName ?? 'User',
+                        email: authUser.email ?? '',
+                        onSignOut: _confirmSignOut,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                     _SectionHeader(label: 'SETTINGS'),
                     _SettingsCard(
                       children: [
@@ -415,6 +449,117 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (key.isEmpty) return 'Not configured';
     if (key.length <= 4) return '••••••••';
     return '${'•' * 8}${key.substring(key.length - 4)}';
+  }
+}
+
+class _UserHeader extends StatelessWidget {
+  final String? photoUrl;
+  final String displayName;
+  final String email;
+  final VoidCallback onSignOut;
+
+  const _UserHeader({
+    required this.photoUrl,
+    required this.displayName,
+    required this.email,
+    required this.onSignOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor =
+        isDark ? AppColors.darkSurfaceElevated : AppColors.white;
+    final url = photoUrl;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.secondary.withValues(alpha: 0.15),
+                  backgroundImage:
+                      url != null && url.isNotEmpty ? NetworkImage(url) : null,
+                  child: url == null || url.isEmpty
+                      ? Text(
+                          displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.secondary,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (email.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSignOut,
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Sign out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: BorderSide(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

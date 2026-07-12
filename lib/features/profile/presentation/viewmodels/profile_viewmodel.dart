@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/providers/core_providers.dart';
+import '../../../../firebase/analytics_service.dart';
+import '../../../../firebase/auth_service.dart';
+import '../../../../firebase/firebase_providers.dart';
 import '../../../publication/domain/usecases/search_topics.dart';
 import '../../domain/entities/user_settings.dart';
 import '../../domain/repositories/profile_repository.dart';
@@ -21,6 +26,8 @@ class ProfileViewModel extends Notifier<ProfileState> {
 
   ProfileRepository get _repository => ref.read(profileRepositoryProvider);
   ApiClient get _apiClient => ref.read(apiClientProvider);
+  AuthService get _auth => ref.read(authServiceProvider);
+  AnalyticsService get _analytics => ref.read(analyticsServiceProvider);
 
   Future<void> load() async {
     state = state.copyWith(status: ProfileStatus.loading, clearMessage: true);
@@ -102,6 +109,21 @@ class ProfileViewModel extends Notifier<ProfileState> {
       state = state.copyWith(
         status: ProfileStatus.error,
         message: 'Restore failed: $e',
+      );
+    }
+  }
+
+  /// Đăng xuất Firebase + Google; router redirect sẽ đẩy về `/login`.
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      unawaited(_analytics.logLogout().catchError((_) {}));
+      unawaited(_analytics.setUserId(null).catchError((_) {}));
+    } catch (e) {
+      if (!ref.mounted) return;
+      state = state.copyWith(
+        status: ProfileStatus.error,
+        message: 'Sign out failed: $e',
       );
     }
   }

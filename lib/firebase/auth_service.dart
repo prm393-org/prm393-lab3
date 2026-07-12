@@ -3,10 +3,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 /// Bọc Firebase Authentication + Google Sign-In (FR 4.1).
 ///
-/// Lưu ý: `google_sign_in` 7.x đã bỏ `signIn()` của 6.x. Luồng mới là
-/// `initialize()` một lần rồi `authenticate()`, và token trả về chỉ còn
-/// `idToken` — đủ để dựng credential cho Firebase.
+/// `google_sign_in` 7.x: gọi `initialize(serverClientId: …)` một lần rồi
+/// `authenticate()`. `serverClientId` phải là **Web client ID** (client_type 3
+/// trong `google-services.json`) — thiếu thì Android không cấp idToken / CredMan fail.
 class AuthService {
+  /// Web OAuth client từ `google-services.json` → `oauth_client` type 3.
+  static const String webClientId =
+      '659837143296-l4lmsa9vrk640f77fpanuvo61mrp5fdg.apps.googleusercontent.com';
+
   AuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
       : _auth = firebaseAuth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
@@ -23,7 +27,7 @@ class AuthService {
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
-    await _googleSignIn.initialize();
+    await _googleSignIn.initialize(serverClientId: webClientId);
     _initialized = true;
   }
 
@@ -36,7 +40,22 @@ class AuthService {
     try {
       account = await _googleSignIn.authenticate();
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        // SHA-1 sai / OAuth lệch thường bị map thành canceled kèm "[16] reauth".
+        final desc = '${e.description ?? ''} ${e.toString()}'.toLowerCase();
+        if (desc.contains('reauth') ||
+            desc.contains('[16]') ||
+            desc.contains('network_error')) {
+          throw FirebaseAuthException(
+            code: 'google-sign-in-config',
+            message:
+                'Google Sign-In failed. Add this machine\'s debug SHA-1 to '
+                'Firebase (Project settings → Your apps), download a fresh '
+                'google-services.json, then rebuild.',
+          );
+        }
+        return null;
+      }
       rethrow;
     }
 

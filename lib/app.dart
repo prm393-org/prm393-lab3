@@ -16,6 +16,7 @@ class App extends ConsumerWidget {
     final themeMode = ref.watch(
       profileViewModelProvider.select((s) => s.themeMode),
     );
+    final router = ref.watch(goRouterProvider);
 
     final brightness = switch (themeMode) {
       ThemeMode.dark => Brightness.dark,
@@ -32,7 +33,7 @@ class App extends ConsumerWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeMode,
-        routerConfig: AppRouter.router,
+        routerConfig: router,
       ),
     );
   }

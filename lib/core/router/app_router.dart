@@ -1,5 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/journal/presentation/screens/journal_screen.dart';
 import '../../features/journal/presentation/screens/journal_detail_screen.dart';
@@ -8,14 +10,35 @@ import '../../features/keywords/presentation/screens/research_dashboard_screen.d
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/publication/domain/entities/work.dart';
 import '../../features/publication/domain/entities/journal_summary.dart';
+import '../../firebase/firebase_providers.dart';
 import '../navigation/main_scaffold.dart';
+import 'go_router_refresh_stream.dart';
 
-class AppRouter {
-  AppRouter._();
+/// Router có auth guard: chưa login → `/login`, đã login vào `/login` → `/home`.
+final goRouterProvider = Provider<GoRouter>((ref) {
+  final auth = ref.watch(authServiceProvider);
+  final refresh = GoRouterRefreshStream(auth.authStateChanges);
+  ref.onDispose(refresh.dispose);
 
-  static final GoRouter router = GoRouter(
+  return GoRouter(
     initialLocation: '/home',
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      // Đọc `currentUser` đồng bộ — không dùng StreamProvider ở đây.
+      // Khi refreshListenable fire, StreamProvider có thể chưa kịp update
+      // → redirect đọc user=null và kẹt ở /login dù Firebase đã login.
+      final isLoggedIn = auth.currentUser != null;
+      final loggingIn = state.matchedLocation == '/login';
+
+      if (!isLoggedIn && !loggingIn) return '/login';
+      if (isLoggedIn && loggingIn) return '/home';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainScaffold(navigationShell: navigationShell),
@@ -99,4 +122,9 @@ class AppRouter {
       ),
     ],
   );
+});
+
+/// Legacy namespace — dùng [goRouterProvider] trong app.
+abstract final class AppRouter {
+  AppRouter._();
 }
