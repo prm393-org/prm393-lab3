@@ -13,6 +13,7 @@ class WorkModel extends Work {
     super.type,
     required super.citedByCount,
     required super.authors,
+    super.sourceId,
     super.sourceName,
     super.abstract_,
     required super.isOpenAccess,
@@ -37,8 +38,7 @@ class WorkModel extends Work {
           .map(AuthorModel.fromJson)
           .toList();
 
-      final primaryLocation =
-          json['primary_location'] as Map<String, dynamic>?;
+      final primaryLocation = json['primary_location'] as Map<String, dynamic>?;
       final bestOaLocation = json['best_oa_location'] as Map<String, dynamic>?;
       final source = primaryLocation?['source'] as Map<String, dynamic>?;
       final openAccess = json['open_access'] as Map<String, dynamic>?;
@@ -50,7 +50,8 @@ class WorkModel extends Work {
       return WorkModel(
         id: json['id'] as String? ?? '',
         doi: json['doi'] as String?,
-        title: (json['title'] as String?) ??
+        title:
+            (json['title'] as String?) ??
             (json['display_name'] as String?) ??
             'Untitled',
         publicationYear: json['publication_year'] as int?,
@@ -58,14 +59,17 @@ class WorkModel extends Work {
         type: json['type'] as String?,
         citedByCount: json['cited_by_count'] as int? ?? 0,
         authors: authors,
+        sourceId: _readString(source?['id']),
         sourceName: source?['display_name'] as String?,
         abstract_: AbstractDecoder.reconstruct(abstractIndex),
         isOpenAccess: openAccess?['is_oa'] as bool? ?? false,
-        landingPageUrl: _readUrl(bestOaLocation?['landing_page_url']) ??
+        landingPageUrl:
+            _readUrl(bestOaLocation?['landing_page_url']) ??
             _readUrl(primaryLocation?['landing_page_url']),
         oaUrl: _readUrl(openAccess?['oa_url']),
         oaStatus: openAccess?['oa_status'] as String?,
-        license: _readString(bestOaLocation?['license']) ??
+        license:
+            _readString(bestOaLocation?['license']) ??
             _readString(primaryLocation?['license']),
         issn: source?['issn_l'] as String?,
         volume: _stringify(biblio?['volume']),

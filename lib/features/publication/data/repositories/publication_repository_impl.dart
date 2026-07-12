@@ -4,6 +4,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/paged.dart';
+import '../../domain/entities/journal_summary.dart';
 import '../../domain/entities/topic.dart';
 import '../../domain/entities/trend_point.dart';
 import '../../domain/entities/work.dart';
@@ -17,8 +18,8 @@ class PublicationRepositoryImpl implements PublicationRepository {
   PublicationRepositoryImpl({
     required PublicationRemoteDatasource datasource,
     required NetworkInfo networkInfo,
-  })  : _datasource = datasource,
-        _networkInfo = networkInfo;
+  }) : _datasource = datasource,
+       _networkInfo = networkInfo;
 
   @override
   Future<Either<Failure, Paged<Topic>>> searchTopics({
@@ -26,17 +27,20 @@ class PublicationRepositoryImpl implements PublicationRepository {
     String sort = 'works_count:desc',
     int page = 1,
     int perPage = 25,
-  }) =>
-      _run(() async {
-        final r = await _datasource.searchTopics(
-            query: query, sort: sort, page: page, perPage: perPage);
-        return Paged<Topic>(
-          items: r.items,
-          total: r.total,
-          page: page,
-          perPage: perPage,
-        );
-      });
+  }) => _run(() async {
+    final r = await _datasource.searchTopics(
+      query: query,
+      sort: sort,
+      page: page,
+      perPage: perPage,
+    );
+    return Paged<Topic>(
+      items: r.items,
+      total: r.total,
+      page: page,
+      perPage: perPage,
+    );
+  });
 
   @override
   Future<Either<Failure, Paged<Work>>> getWorksByTopic(
@@ -45,17 +49,21 @@ class PublicationRepositoryImpl implements PublicationRepository {
     int perPage = 25,
     int? year,
     String sort = 'cited_by_count:desc',
-  }) =>
-      _run(() async {
-        final r = await _datasource.getWorksByTopic(topicId,
-            page: page, perPage: perPage, year: year, sort: sort);
-        return Paged<Work>(
-          items: r.items,
-          total: r.total,
-          page: page,
-          perPage: perPage,
-        );
-      });
+  }) => _run(() async {
+    final r = await _datasource.getWorksByTopic(
+      topicId,
+      page: page,
+      perPage: perPage,
+      year: year,
+      sort: sort,
+    );
+    return Paged<Work>(
+      items: r.items,
+      total: r.total,
+      page: page,
+      perPage: perPage,
+    );
+  });
 
   @override
   Future<Either<Failure, List<TrendPoint>>> getTopicTrend(String topicId) =>
@@ -64,6 +72,41 @@ class PublicationRepositoryImpl implements PublicationRepository {
   @override
   Future<Either<Failure, Work>> getWorkById(String workId) =>
       _run(() => _datasource.getWorkById(workId));
+
+  @override
+  Future<Either<Failure, List<JournalSummary>>> getJournalsByTopic({
+    required String topicId,
+    int limit = 10,
+  }) => _run(
+    () => _datasource.getJournalsByTopic(topicId: topicId, limit: limit),
+  );
+
+  @override
+  Future<Either<Failure, JournalSummary>> getJournalById(String journalId) =>
+      _run(() => _datasource.getJournalById(journalId));
+
+  @override
+  Future<Either<Failure, Paged<Work>>> getWorksByJournal({
+    required String journalId,
+    String? topicId,
+    int page = 1,
+    int perPage = 20,
+    String sort = 'cited_by_count:desc',
+  }) => _run(() async {
+    final result = await _datasource.getWorksByJournal(
+      journalId: journalId,
+      topicId: topicId,
+      page: page,
+      perPage: perPage,
+      sort: sort,
+    );
+    return Paged<Work>(
+      items: result.items,
+      total: result.total,
+      page: page,
+      perPage: perPage,
+    );
+  });
 
   Future<Either<Failure, T>> _run<T>(Future<T> Function() call) async {
     if (!await _networkInfo.isConnected) return const Left(NetworkFailure());
