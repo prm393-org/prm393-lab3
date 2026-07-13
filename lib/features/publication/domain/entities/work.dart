@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'author.dart';
+import 'keyword.dart';
 
 class Work extends Equatable {
   final String id;
@@ -25,7 +26,7 @@ class Work extends Equatable {
   final String? firstPage;
   final String? lastPage;
   final String? primaryTopicName;
-  final List<String> keywords;
+  final List<Keyword> keywords;
 
   const Work({
     required this.id,

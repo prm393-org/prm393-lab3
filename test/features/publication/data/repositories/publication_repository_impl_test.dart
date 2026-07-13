@@ -94,6 +94,17 @@ class _FakeDatasource implements PublicationRemoteDatasource {
   }) async => (items: const <WorkModel>[], total: 0);
 
   @override
+  Future<PageResult<WorkModel>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  }) async => (items: const <WorkModel>[], total: 0);
+
+  @override
+  Future<List<TrendPoint>> getKeywordTrend(String keywordId) async => const [];
+
+  @override
   Future<PageResult<TopicModel>> searchTopics({
     String? query,
     String sort = 'works_count:desc',

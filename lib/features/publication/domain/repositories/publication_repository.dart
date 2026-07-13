@@ -29,6 +29,17 @@ abstract class PublicationRepository {
   /// Số bài báo theo năm của một topic — dữ liệu cho biểu đồ xu hướng (4.3).
   Future<Either<Failure, List<TrendPoint>>> getTopicTrend(String topicId);
 
+  /// Bài báo gắn một keyword — dữ liệu cho Keyword Detail (4.7).
+  Future<Either<Failure, Paged<Work>>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  });
+
+  /// Số bài báo theo năm của một keyword (4.7).
+  Future<Either<Failure, List<TrendPoint>>> getKeywordTrend(String keywordId);
+
   /// Chi tiết đầy đủ một bài báo theo OpenAlex work ID.
   Future<Either<Failure, Work>> getWorkById(String workId);
 

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../publication/domain/entities/keyword.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../publication/domain/entities/trend_point.dart';
 import '../../../publication/domain/entities/work.dart';
@@ -8,10 +9,18 @@ class RankedResearchItem extends Equatable {
   final String name;
   final int count;
 
-  const RankedResearchItem({required this.name, required this.count});
+  /// Chỉ có ở bảng xếp hạng keyword — mang id OpenAlex để mở Keyword Detail.
+  /// Null với author/journal/institution (không có màn detail tương ứng).
+  final Keyword? keyword;
+
+  const RankedResearchItem({
+    required this.name,
+    required this.count,
+    this.keyword,
+  });
 
   @override
-  List<Object?> get props => [name, count];
+  List<Object?> get props => [name, count, keyword];
 }
 
 /// Thống kê productivity (số bài) vs impact (tổng trích dẫn) cho một thực thể

@@ -1,5 +1,6 @@
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/utils/abstract_decoder.dart';
+import '../../domain/entities/keyword.dart';
 import '../../domain/entities/work.dart';
 import 'author_model.dart';
 
@@ -102,13 +103,19 @@ class WorkModel extends Work {
     return text.isEmpty ? null : text;
   }
 
-  static List<String> _parseKeywords(dynamic raw) {
+  /// Giữ cả `id` lẫn `display_name`: id là thứ duy nhất lọc được
+  /// `/works?filter=keywords.id:...` (xem [Keyword]).
+  static List<Keyword> _parseKeywords(dynamic raw) {
     if (raw is! List) return const [];
     return raw
         .whereType<Map<String, dynamic>>()
-        .map((k) => k['display_name'] as String?)
-        .whereType<String>()
-        .where((s) => s.isNotEmpty)
+        .map((k) {
+          final id = _readString(k['id']);
+          final name = _readString(k['display_name']);
+          if (id == null || name == null) return null;
+          return Keyword(id: id, displayName: name);
+        })
+        .whereType<Keyword>()
         .take(8)
         .toList(growable: false);
   }
