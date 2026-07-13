@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/providers/core_providers.dart';
+import 'features/profile/presentation/viewmodels/notification_center_viewmodel.dart';
 import 'firebase/firebase_providers.dart';
 import 'firebase_options.dart';
 
@@ -30,6 +31,10 @@ Future<void> main() async {
   container.read(crashlyticsServiceProvider).registerGlobalHandlers();
   container.read(messagingServiceProvider).init();
   await container.read(remoteConfigServiceProvider).init();
+
+  // Subscribe FCM ngay từ đầu: nếu đợi tới lúc mở màn Profile mới tạo provider
+  // thì notification đến trước đó sẽ không lọt vào Notification Center.
+  container.read(notificationCenterProvider);
 
   runApp(
     UncontrolledProviderScope(
