@@ -4,6 +4,7 @@ import '../../../core/providers/core_providers.dart';
 import '../data/datasources/profile_local_datasource.dart';
 import '../data/repositories/profile_repository_impl.dart';
 import '../domain/repositories/profile_repository.dart';
+import '../domain/usecases/build_report_pdf.dart';
 
 final profileLocalDatasourceProvider = Provider<ProfileLocalDatasource>(
   (ref) => ProfileLocalDatasourceImpl(ref.watch(sharedPreferencesProvider)),
@@ -11,4 +12,8 @@ final profileLocalDatasourceProvider = Provider<ProfileLocalDatasource>(
 
 final profileRepositoryProvider = Provider<ProfileRepository>(
   (ref) => ProfileRepositoryImpl(ref.watch(profileLocalDatasourceProvider)),
+);
+
+final buildReportPdfProvider = Provider<BuildReportPdf>(
+  (ref) => const BuildReportPdf(),
 );

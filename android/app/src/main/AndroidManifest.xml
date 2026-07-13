@@ -2,6 +2,9 @@
     <!-- Gọi OpenAlex API + kiểm tra kết nối mạng -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- FCM: Android 13+ (API 33) bắt buộc quyền này thì dialog xin quyền
+         notification mới hiện, không có thì requestPermission() luôn bị từ chối. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="Journal Trend Analyzer"
         android:name="${applicationName}"
@@ -26,6 +29,12 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- FCM: cần intent-filter này thì tap vào notification mới bắn
+                 onMessageOpenedApp về app (Notification Center dựa vào đó). -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
