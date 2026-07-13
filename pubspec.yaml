@@ -53,6 +53,7 @@ dependencies:
   firebase_crashlytics: ^5.2.4
   firebase_remote_config: ^6.5.3
   flutter_riverpod: ^3.3.2
+  pdf: ^3.11.3
 
 dev_dependencies:
   flutter_test:

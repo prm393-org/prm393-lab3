@@ -6,8 +6,10 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/journal/presentation/screens/journal_screen.dart';
 import '../../features/journal/presentation/screens/journal_detail_screen.dart';
 import '../../features/journal/presentation/screens/publication_detail_screen.dart';
+import '../../features/keywords/presentation/screens/keyword_detail_screen.dart';
 import '../../features/keywords/presentation/screens/research_dashboard_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/publication/domain/entities/keyword.dart';
 import '../../features/publication/domain/entities/work.dart';
 import '../../features/publication/domain/entities/journal_summary.dart';
 import '../../firebase/firebase_providers.dart';
@@ -107,6 +109,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/keywords',
                 builder: (context, state) => const ResearchDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'detail/:keyword',
+                    builder: (context, state) {
+                      final slug = state.pathParameters['keyword']!;
+                      final preview = state.extra is Keyword
+                          ? state.extra as Keyword
+                          : null;
+                      return KeywordDetailScreen(
+                        keywordSlug: slug,
+                        preview: preview,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),

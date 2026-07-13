@@ -68,6 +68,20 @@ class FakePublicationRepository implements PublicationRepository {
   ) async => const Right([]);
 
   @override
+  Future<Either<Failure, List<TrendPoint>>> getKeywordTrend(
+    String keywordId,
+  ) async => const Right([]);
+
+  @override
+  Future<Either<Failure, Paged<Work>>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  }) async =>
+      Right(Paged(items: const [], total: 0, page: page, perPage: perPage));
+
+  @override
   Future<Either<Failure, Paged<Work>>> getWorksByTopic(
     String topicId, {
     int page = 1,

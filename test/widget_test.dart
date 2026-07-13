@@ -107,6 +107,25 @@ class _InMemoryPublicationRepository implements PublicationRepository {
   }
 
   @override
+  Future<Either<Failure, List<TrendPoint>>> getKeywordTrend(
+    String keywordId,
+  ) async {
+    return const Right([]);
+  }
+
+  @override
+  Future<Either<Failure, Paged<Work>>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  }) async {
+    return Right(
+      Paged<Work>(items: const [], total: 0, page: page, perPage: perPage),
+    );
+  }
+
+  @override
   Future<Either<Failure, Work>> getWorkById(String workId) async {
     return Left(ServerFailure('Not implemented in test', statusCode: 501));
   }

@@ -10,6 +10,13 @@ class ResearchDashboardRankingCard extends StatelessWidget {
   final List<RankedResearchItem> items;
   final Color accent;
 
+  /// Cho phép tap từng dòng (bảng keyword → mở Keyword Detail). Bỏ trống thì
+  /// thẻ chỉ để đọc, như bảng xếp hạng author/journal/institution.
+  final ValueChanged<RankedResearchItem>? onItemTap;
+
+  /// Cấp Key cho từng dòng để Patrol tap được đúng dòng thứ i.
+  final Key Function(int index)? itemKeyBuilder;
+
   const ResearchDashboardRankingCard({
     super.key,
     required this.title,
@@ -17,6 +24,8 @@ class ResearchDashboardRankingCard extends StatelessWidget {
     required this.icon,
     required this.items,
     required this.accent,
+    this.onItemTap,
+    this.itemKeyBuilder,
   });
 
   @override
@@ -79,9 +88,13 @@ class ResearchDashboardRankingCard extends StatelessWidget {
             const SizedBox(height: 20),
             for (var index = 0; index < items.length; index++) ...[
               _RankingRow(
+                key: itemKeyBuilder?.call(index),
                 item: items[index],
                 maxCount: maxCount,
                 accent: accent,
+                onTap: onItemTap == null
+                    ? null
+                    : () => onItemTap!(items[index]),
               ),
               if (index != items.length - 1) const SizedBox(height: 10),
             ],
@@ -96,11 +109,14 @@ class _RankingRow extends StatelessWidget {
   final RankedResearchItem item;
   final int maxCount;
   final Color accent;
+  final VoidCallback? onTap;
 
   const _RankingRow({
+    super.key,
     required this.item,
     required this.maxCount,
     required this.accent,
+    this.onTap,
   });
 
   @override
@@ -109,13 +125,16 @@ class _RankingRow extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final progress = maxCount == 0 ? 0.0 : item.count / maxCount;
 
-    return Row(
+    final row = Row(
       children: [
         SizedBox(
           width: 110,
           child: Text(
             item.name,
-            style: tt.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: tt.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: onTap == null ? null : accent,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -144,7 +163,24 @@ class _RankingRow extends StatelessWidget {
             ),
           ),
         ),
+        if (onTap != null)
+          Icon(
+            Icons.chevron_right,
+            size: 16,
+            color: cs.onSurface.withValues(alpha: 0.35),
+          ),
       ],
+    );
+
+    if (onTap == null) return row;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: row,
+      ),
     );
   }
 }

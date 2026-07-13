@@ -1,15 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/core_providers.dart';
+import '../../keywords/domain/usecases/build_keyword_detail.dart';
 import '../../keywords/domain/usecases/build_research_dashboard.dart';
 import '../data/datasources/publication_remote_datasource.dart';
 import '../data/repositories/publication_repository_impl.dart';
 import '../domain/repositories/publication_repository.dart';
+import '../domain/usecases/get_keyword_trend.dart';
 import '../domain/usecases/get_topic_trend.dart';
 import '../domain/usecases/get_journal_by_id.dart';
 import '../domain/usecases/get_journals_by_topic.dart';
 import '../domain/usecases/get_work_by_id.dart';
 import '../domain/usecases/get_works_by_journal.dart';
+import '../domain/usecases/get_works_by_keyword.dart';
 import '../domain/usecases/get_works_by_topic.dart';
 import '../domain/usecases/search_topics.dart';
 
@@ -56,6 +59,18 @@ final getWorksByJournalProvider = Provider<GetWorksByJournal>(
   (ref) => GetWorksByJournal(ref.watch(publicationRepositoryProvider)),
 );
 
+final getWorksByKeywordProvider = Provider<GetWorksByKeyword>(
+  (ref) => GetWorksByKeyword(ref.watch(publicationRepositoryProvider)),
+);
+
+final getKeywordTrendProvider = Provider<GetKeywordTrend>(
+  (ref) => GetKeywordTrend(ref.watch(publicationRepositoryProvider)),
+);
+
 final buildResearchDashboardProvider = Provider<BuildResearchDashboard>(
   (ref) => const BuildResearchDashboard(),
+);
+
+final buildKeywordDetailProvider = Provider<BuildKeywordDetail>(
+  (ref) => const BuildKeywordDetail(),
 );

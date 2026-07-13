@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../firebase/firebase_providers.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../publication/domain/usecases/get_works_by_topic.dart';
 import '../../../publication/providers/publication_providers.dart';
@@ -35,6 +36,9 @@ class ResearchDashboardViewModel extends Notifier<ResearchDashboardState> {
     // Bỏ qua kết quả của request đã bị thay thế bởi lần load mới hơn.
     if (requestId != _requestId || !ref.mounted) return;
 
+    // Remote Config quyết định số dòng hiển thị của hai bảng xếp hạng.
+    final remoteConfig = ref.read(remoteConfigServiceProvider);
+
     result.fold(
       (failure) => state = ResearchDashboardError(failure.message, topic),
       (paged) {
@@ -43,7 +47,12 @@ class ResearchDashboardViewModel extends Notifier<ResearchDashboardState> {
           return;
         }
         state = ResearchDashboardLoaded(
-          _buildResearchDashboard(topic: topic, worksPage: paged),
+          _buildResearchDashboard(
+            topic: topic,
+            worksPage: paged,
+            journalLimit: remoteConfig.maxJournalsDisplayed,
+            keywordLimit: remoteConfig.maxKeywordsDisplayed,
+          ),
         );
       },
     );

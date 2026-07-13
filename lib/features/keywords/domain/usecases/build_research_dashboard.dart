@@ -1,15 +1,22 @@
+import '../../../publication/domain/entities/keyword.dart';
 import '../../../publication/domain/entities/paged.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../publication/domain/entities/trend_point.dart';
 import '../../../publication/domain/entities/work.dart';
+import '../aggregation.dart';
 import '../entities/research_dashboard_summary.dart';
 
 class BuildResearchDashboard {
   const BuildResearchDashboard();
 
+  /// [journalLimit] / [keywordLimit] do Remote Config điều khiển
+  /// (`max_journals_displayed`, `max_keywords_displayed`) — mặc định giữ
+  /// nguyên hành vi cũ khi chưa fetch được config.
   ResearchDashboardSummary call({
     required Topic topic,
     required Paged<Work> worksPage,
+    int journalLimit = 5,
+    int keywordLimit = 8,
   }) {
     final works = worksPage.items;
     final totalCitations = works.fold<int>(
@@ -28,6 +35,8 @@ class BuildResearchDashboard {
     final keywordYearCounts = <String, Map<int, int>>{}; // kw -> {năm: số bài}
     final keywordYearSum = <String, int>{}; // kw -> tổng năm (cho năm TB)
     final keywordYearOccur = <String, int>{}; // kw -> số bài có năm
+    // Tên hiển thị -> Keyword gốc, để bảng xếp hạng mở được Keyword Detail.
+    final keywordRefs = <String, Keyword>{};
     final institutionCounts = <String, int>{};
     final institutionCitations = <String, int>{};
 
@@ -38,19 +47,29 @@ class BuildResearchDashboard {
         citationByYear[year] = (citationByYear[year] ?? 0) + work.citedByCount;
       }
 
-      final journal = _safeName(work.sourceName, 'Unknown Journal');
+      final journal = safeName(work.sourceName, 'Unknown Journal');
       journalCounts[journal] = (journalCounts[journal] ?? 0) + 1;
       journalCitations[journal] =
           (journalCitations[journal] ?? 0) + work.citedByCount;
 
       // Keyword: gom theo tần suất + trích dẫn + phân bố theo năm.
-      for (final kw in work.keywords.map((k) => k.trim()).toSet()) {
-        if (kw.isEmpty) continue;
+      final keywordsInWork = <String, Keyword>{};
+      for (final keyword in work.keywords) {
+        final name = keyword.displayName.trim();
+        if (name.isEmpty) continue;
+        keywordsInWork[name] = keyword;
+      }
+      for (final entry in keywordsInWork.entries) {
+        final kw = entry.key;
+        keywordRefs[kw] = entry.value;
         keywordCounts[kw] = (keywordCounts[kw] ?? 0) + 1;
         keywordCitations[kw] = (keywordCitations[kw] ?? 0) + work.citedByCount;
         if (year != null) {
-          (keywordYearCounts[kw] ??= <int, int>{})
-              .update(year, (v) => v + 1, ifAbsent: () => 1);
+          (keywordYearCounts[kw] ??= <int, int>{}).update(
+            year,
+            (v) => v + 1,
+            ifAbsent: () => 1,
+          );
           keywordYearSum[kw] = (keywordYearSum[kw] ?? 0) + year;
           keywordYearOccur[kw] = (keywordYearOccur[kw] ?? 0) + 1;
         }
@@ -73,7 +92,7 @@ class BuildResearchDashboard {
             (authorCitations['Unknown Author'] ?? 0) + work.citedByCount;
       } else {
         final authorsInWork = work.authors
-            .map((author) => _safeName(author.displayName, 'Unknown Author'))
+            .map((author) => safeName(author.displayName, 'Unknown Author'))
             .toSet();
         for (final author in authorsInWork) {
           authorCounts[author] = (authorCounts[author] ?? 0) + 1;
@@ -96,26 +115,16 @@ class BuildResearchDashboard {
           ..sort((a, b) => a.year.compareTo(b.year));
 
     // #9: mỗi tác giả → (số bài, tổng trích dẫn), lấy ~40 cho scatter.
-    final authorStats = _impactStats(authorCounts, authorCitations).take(40);
+    final authorStats = impactStats(authorCounts, authorCitations).take(40);
 
     // #11: mỗi tổ chức → (số bài, tổng trích dẫn).
-    final institutionStats =
-        _impactStats(institutionCounts, institutionCitations).take(40);
+    final institutionStats = impactStats(
+      institutionCounts,
+      institutionCitations,
+    ).take(40);
 
     // Journal Impact: mỗi journal → (số bài, tổng trích dẫn).
-    final journalStats =
-        _impactStats(journalCounts, journalCitations).take(40);
-
-    final mostActiveYear = yearlyTrend.isEmpty
-        ? null
-        : yearlyTrend.reduce((current, candidate) {
-            if (candidate.count > current.count) return candidate;
-            if (candidate.count == current.count &&
-                candidate.year > current.year) {
-              return candidate;
-            }
-            return current;
-          }).year;
+    final journalStats = impactStats(journalCounts, journalCitations).take(40);
 
     final topPapers = [...works]
       ..sort((a, b) {
@@ -125,11 +134,15 @@ class BuildResearchDashboard {
       });
 
     // Bài báo có năm xuất bản → dữ liệu cho scatter Năm × Citations.
-    final scatterPapers =
-        works.where((w) => w.publicationYear != null).toList(growable: false);
+    final scatterPapers = works
+        .where((w) => w.publicationYear != null)
+        .toList(growable: false);
 
     // #4 + #27: dữ liệu keyword theo thời gian.
-    final emergingKeywords = _emergingKeywords(keywordCounts, keywordYearCounts);
+    final emergingKeywords = _emergingKeywords(
+      keywordCounts,
+      keywordYearCounts,
+    );
     final frontierKeywords = _frontierKeywords(
       keywordCounts,
       keywordCitations,
@@ -137,19 +150,29 @@ class BuildResearchDashboard {
       keywordYearOccur,
     );
 
+    // Gắn Keyword gốc vào từng dòng xếp hạng để tap mở được Keyword Detail.
+    final topKeywords = [
+      for (final item in rankByCount(keywordCounts, limit: keywordLimit))
+        RankedResearchItem(
+          name: item.name,
+          count: item.count,
+          keyword: keywordRefs[item.name],
+        ),
+    ];
+
     return ResearchDashboardSummary(
       topic: topic,
       totalPublications: worksPage.total,
       totalCitations: totalCitations,
       averageCitations: works.isEmpty ? 0 : totalCitations / works.length,
-      mostActiveYear: mostActiveYear,
+      mostActiveYear: mostActiveYearOf(yearCounts),
       sampleSize: works.length,
       yearlyTrend: yearlyTrend,
       citationTrend: citationTrend,
-      topJournals: _rank(journalCounts, limit: 5),
-      topAuthors: _rank(authorCounts, limit: 5),
-      topKeywords: _rank(keywordCounts, limit: 8),
-      topInstitutions: _rank(institutionCounts, limit: 5),
+      topJournals: rankByCount(journalCounts, limit: journalLimit),
+      topAuthors: rankByCount(authorCounts, limit: 5),
+      topKeywords: topKeywords,
+      topInstitutions: rankByCount(institutionCounts, limit: 5),
       authorStats: authorStats.toList(growable: false),
       institutionStats: institutionStats.toList(growable: false),
       journalStats: journalStats.toList(growable: false),
@@ -160,33 +183,13 @@ class BuildResearchDashboard {
     );
   }
 
-  /// Chuyển (counts, citations) → danh sách ImpactStat sắp giảm theo số bài.
-  List<ImpactStat> _impactStats(
-    Map<String, int> counts,
-    Map<String, int> citations,
-  ) {
-    return counts.entries
-        .map((e) => ImpactStat(
-              name: e.key,
-              papers: e.value,
-              citations: citations[e.key] ?? 0,
-            ))
-        .toList()
-      ..sort((a, b) {
-        final byPapers = b.papers.compareTo(a.papers);
-        return byPapers != 0 ? byPapers : b.citations.compareTo(a.citations);
-      });
-  }
-
   /// #4 Emerging Keywords: chọn ~5 keyword có nhiều bài ở các năm gần nhất,
   /// trả về chuỗi số bài theo năm (điền 0 cho năm trống để các đường thẳng hàng).
   List<KeywordSeries> _emergingKeywords(
     Map<String, int> keywordCounts,
     Map<String, Map<int, int>> keywordYearCounts,
   ) {
-    final allYears = <int>{
-      for (final m in keywordYearCounts.values) ...m.keys,
-    };
+    final allYears = <int>{for (final m in keywordYearCounts.values) ...m.keys};
     if (allYears.length < 2) return const [];
 
     final maxYear = allYears.reduce((a, b) => a > b ? a : b);
@@ -203,16 +206,20 @@ class BuildResearchDashboard {
       return s;
     }
 
-    final candidates = keywordCounts.entries
-        .where((e) => e.value >= 2 && (keywordYearCounts[e.key]?.length ?? 0) >= 2)
-        .map((e) => e.key)
-        .toList()
-      ..sort((a, b) {
-        final byRecent = recentScore(b).compareTo(recentScore(a));
-        return byRecent != 0
-            ? byRecent
-            : (keywordCounts[b] ?? 0).compareTo(keywordCounts[a] ?? 0);
-      });
+    final candidates =
+        keywordCounts.entries
+            .where(
+              (e) =>
+                  e.value >= 2 && (keywordYearCounts[e.key]?.length ?? 0) >= 2,
+            )
+            .map((e) => e.key)
+            .toList()
+          ..sort((a, b) {
+            final byRecent = recentScore(b).compareTo(recentScore(a));
+            return byRecent != 0
+                ? byRecent
+                : (keywordCounts[b] ?? 0).compareTo(keywordCounts[a] ?? 0);
+          });
 
     return candidates.take(5).map((kw) {
       final m = keywordYearCounts[kw] ?? const {};
@@ -237,35 +244,16 @@ class BuildResearchDashboard {
       final kw = entry.key;
       final occur = keywordYearOccur[kw] ?? 0;
       if (entry.value < 2 || occur == 0) continue;
-      points.add(KeywordFrontierPoint(
-        keyword: kw,
-        meanYear: (keywordYearSum[kw] ?? 0) / occur,
-        papers: entry.value,
-        citations: keywordCitations[kw] ?? 0,
-      ));
+      points.add(
+        KeywordFrontierPoint(
+          keyword: kw,
+          meanYear: (keywordYearSum[kw] ?? 0) / occur,
+          papers: entry.value,
+          citations: keywordCitations[kw] ?? 0,
+        ),
+      );
     }
     points.sort((a, b) => b.papers.compareTo(a.papers));
     return points.take(25).toList(growable: false);
-  }
-
-  List<RankedResearchItem> _rank(
-    Map<String, int> counts, {
-    required int limit,
-  }) {
-    final entries = counts.entries.toList()
-      ..sort((a, b) {
-        final countOrder = b.value.compareTo(a.value);
-        return countOrder != 0 ? countOrder : a.key.compareTo(b.key);
-      });
-
-    return entries
-        .take(limit)
-        .map((entry) => RankedResearchItem(name: entry.key, count: entry.value))
-        .toList(growable: false);
-  }
-
-  String _safeName(String? value, String fallback) {
-    final normalized = value?.trim();
-    return normalized == null || normalized.isEmpty ? fallback : normalized;
   }
 }

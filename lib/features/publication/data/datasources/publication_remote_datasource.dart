@@ -29,6 +29,17 @@ abstract class PublicationRemoteDatasource {
   /// Số bài báo theo năm của một topic (OpenAlex `group_by`) — phục vụ 4.3.
   Future<List<TrendPoint>> getTopicTrend(String topicId);
 
+  /// Bài báo gắn một keyword (`/works?filter=keywords.id:...`) — phục vụ 4.7.
+  Future<PageResult<WorkModel>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  });
+
+  /// Số bài báo theo năm của một keyword — trend đầy đủ, không chỉ trong mẫu.
+  Future<List<TrendPoint>> getKeywordTrend(String keywordId);
+
   /// Chi tiết một bài báo (`/works/{id}`) — phục vụ màn Publication Detail.
   Future<WorkModel> getWorkById(String workId);
 
@@ -238,12 +249,35 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
   }
 
   @override
-  Future<List<TrendPoint>> getTopicTrend(String topicId) async {
+  Future<PageResult<WorkModel>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  }) {
+    return _request('/works', {
+      'filter': 'keywords.id:${_keywordFilterId(keywordId)}',
+      'sort': sort,
+      'page': page,
+      'per_page': perPage,
+    }, WorkModel.fromJson);
+  }
+
+  @override
+  Future<List<TrendPoint>> getKeywordTrend(String keywordId) =>
+      _yearTrend('keywords.id:${_keywordFilterId(keywordId)}');
+
+  @override
+  Future<List<TrendPoint>> getTopicTrend(String topicId) =>
+      _yearTrend('primary_topic.id:${_shortId(topicId)}');
+
+  /// Số bài theo năm cho một filter bất kỳ (`group_by=publication_year`).
+  Future<List<TrendPoint>> _yearTrend(String filter) async {
     try {
       final response = await _apiClient.dio.get(
         '/works',
         queryParameters: {
-          'filter': 'primary_topic.id:${_shortId(topicId)}',
+          'filter': filter,
           'group_by': 'publication_year',
           // per_page giới hạn SỐ NHÓM trả về — phải đủ lớn để lấy hết các năm
           // (mặc định/giá trị nhỏ chỉ trả về 1 nhóm). 200 là mức tối đa OpenAlex.
@@ -274,6 +308,10 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
   }
 
   String _shortId(String id) => id.split('/').last;
+
+  /// OpenAlex đòi dạng `keywords/<slug>`. Nhận cả URL đầy đủ, `keywords/slug`
+  /// hoặc slug trần (path param của route detail).
+  String _keywordFilterId(String raw) => 'keywords/${_shortId(raw.trim())}';
 
   int _stableSeed(String value) {
     var hash = 17;

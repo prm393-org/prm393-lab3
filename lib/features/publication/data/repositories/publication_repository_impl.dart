@@ -70,6 +70,31 @@ class PublicationRepositoryImpl implements PublicationRepository {
       _run(() => _datasource.getTopicTrend(topicId));
 
   @override
+  Future<Either<Failure, Paged<Work>>> getWorksByKeyword(
+    String keywordId, {
+    int page = 1,
+    int perPage = 25,
+    String sort = 'cited_by_count:desc',
+  }) => _run(() async {
+    final r = await _datasource.getWorksByKeyword(
+      keywordId,
+      page: page,
+      perPage: perPage,
+      sort: sort,
+    );
+    return Paged<Work>(
+      items: r.items,
+      total: r.total,
+      page: page,
+      perPage: perPage,
+    );
+  });
+
+  @override
+  Future<Either<Failure, List<TrendPoint>>> getKeywordTrend(String keywordId) =>
+      _run(() => _datasource.getKeywordTrend(keywordId));
+
+  @override
   Future<Either<Failure, Work>> getWorkById(String workId) =>
       _run(() => _datasource.getWorkById(workId));
 

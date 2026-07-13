@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/widget_keys.dart';
 import '../../../../core/data/recent_searches_store.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../firebase/firebase_providers.dart';
+import '../../../keywords/presentation/viewmodels/research_dashboard_state.dart';
+import '../../../keywords/presentation/viewmodels/research_dashboard_viewmodel.dart';
 import '../../../publication/domain/usecases/search_topics.dart';
 import '../../../shared/presentation/viewmodels/pending_search_viewmodel.dart';
 import '../../../shared/presentation/viewmodels/selected_topic_viewmodel.dart';
+import '../../domain/entities/app_notification.dart';
+import '../viewmodels/notification_center_viewmodel.dart';
 import '../viewmodels/profile_state.dart';
 import '../viewmodels/profile_viewmodel.dart';
 
@@ -267,6 +273,126 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  /// Report Export (FR 4.8): lấy dashboard đang mở ở tab Keywords làm dữ liệu.
+  /// Không có topic nào được phân tích thì không có gì để xuất.
+  Future<void> _exportReport() async {
+    final dashboard = ref.read(researchDashboardViewModelProvider);
+    if (dashboard is! ResearchDashboardLoaded) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Analyze a topic in Keywords first — the report is built from it.',
+            ),
+            action: SnackBarAction(
+              label: 'Keywords',
+              onPressed: () => context.go('/keywords'),
+            ),
+          ),
+        );
+      return;
+    }
+    await _viewModel.exportReport(dashboard.summary);
+  }
+
+  Future<void> _copyToClipboard(String value, String label) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$label copied')));
+  }
+
+  Future<void> _confirmTestCrash() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Force a test crash?'),
+        content: const Text(
+          'The app will close immediately. Reopen it and the crash report '
+          'will be uploaded to Crashlytics.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Crash'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) _viewModel.testCrash();
+  }
+
+  Future<void> _showNotificationCenter() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => Consumer(
+        builder: (ctx, ref, _) {
+          final items = ref.watch(notificationCenterProvider);
+          return SafeArea(
+            key: WidgetKeys.notificationCenterSheet,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Notification Center',
+                          style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (items.isNotEmpty)
+                        TextButton(
+                          onPressed: ref
+                              .read(notificationCenterProvider.notifier)
+                              .clear,
+                          child: const Text('Clear'),
+                        ),
+                    ],
+                  ),
+                ),
+                if (items.isEmpty)
+                  const Padding(
+                    key: WidgetKeys.notificationCenterEmpty,
+                    padding: EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    child: Text(
+                      'No notifications yet.\n\nSend one from Firebase Console '
+                      '(Messaging) using this device\'s FCM token.',
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (_, i) => _NotificationTile(item: items[i]),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _confirmSignOut() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -310,6 +436,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final state = ref.watch(profileViewModelProvider);
     final authUser = ref.watch(authStateProvider).asData?.value;
+    final notifications = ref.watch(notificationCenterProvider);
     _syncFields(state);
     final settings = state.settings;
     final isSaving = state.status == ProfileStatus.saving;
@@ -409,6 +536,146 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
+                    _SectionHeader(label: 'NOTIFICATIONS'),
+                    _SettingsCard(
+                      children: [
+                        _SettingsRow(
+                          key: WidgetKeys.profileNotificationPermission,
+                          icon: Icons.notifications_active_outlined,
+                          title: 'Push notifications',
+                          subtitle: state.notificationsGranted
+                              ? 'Enabled'
+                              : 'Tap to allow notifications',
+                          showChevron: false,
+                          trailing: state.notificationsGranted
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  size: 20,
+                                  color: AppColors.success,
+                                )
+                              : const Icon(Icons.chevron_right, size: 20),
+                          onTap: state.notificationsGranted
+                              ? null
+                              : _viewModel.requestNotificationPermission,
+                        ),
+                        _SettingsRow(
+                          key: WidgetKeys.profileNotificationCenter,
+                          icon: Icons.inbox_outlined,
+                          title: 'Notification Center',
+                          badge: '${notifications.length}',
+                          onTap: _showNotificationCenter,
+                        ),
+                        if (state.fcmToken != null)
+                          _SettingsRow(
+                            key: WidgetKeys.profileFcmToken,
+                            icon: Icons.key_outlined,
+                            title: 'FCM token',
+                            subtitle: 'Tap to copy — paste in Firebase Console',
+                            showChevron: false,
+                            trailing: const Icon(Icons.copy, size: 18),
+                            onTap: () =>
+                                _copyToClipboard(state.fcmToken!, 'FCM token'),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _SectionHeader(label: 'REMOTE CONFIG'),
+                    _SettingsCard(
+                      children: [
+                        _SettingsRow(
+                          key: WidgetKeys.profileMaxJournals,
+                          icon: Icons.library_books_outlined,
+                          title: 'max_journals_displayed',
+                          subtitle: 'Journals listed per ranking',
+                          showChevron: false,
+                          badge: '${state.remoteConfig.maxJournalsDisplayed}',
+                        ),
+                        _SettingsRow(
+                          key: WidgetKeys.profileMaxKeywords,
+                          icon: Icons.sell_outlined,
+                          title: 'max_keywords_displayed',
+                          subtitle: 'Keywords listed per ranking',
+                          showChevron: false,
+                          badge: '${state.remoteConfig.maxKeywordsDisplayed}',
+                        ),
+                        _SettingsRow(
+                          key: WidgetKeys.profileRemoteConfigRefresh,
+                          icon: Icons.cloud_sync_outlined,
+                          title: 'Fetch latest config',
+                          showChevron: false,
+                          trailing: const Icon(Icons.refresh, size: 18),
+                          onTap: _viewModel.refreshRemoteConfig,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _SectionHeader(label: 'REPORT EXPORT'),
+                    _SettingsCard(
+                      children: [
+                        _SettingsRow(
+                          key: WidgetKeys.profileExportPdf,
+                          icon: Icons.picture_as_pdf_outlined,
+                          title: 'Export research report (PDF)',
+                          subtitle: _exportSubtitle(state),
+                          showChevron: false,
+                          trailing: state.isExporting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_outlined, size: 18),
+                          onTap: state.isExporting ? null : _exportReport,
+                        ),
+                        if (state.reportUrl != null) ...[
+                          _SettingsRow(
+                            key: WidgetKeys.profileReportUrl,
+                            icon: Icons.link_outlined,
+                            title: 'Open uploaded report',
+                            subtitle: state.reportUrl,
+                            showChevron: false,
+                            trailing: const Icon(Icons.open_in_new, size: 18),
+                            onTap: () => _openUrl(state.reportUrl!),
+                          ),
+                          _SettingsRow(
+                            key: WidgetKeys.profileCopyReportUrl,
+                            icon: Icons.copy_outlined,
+                            title: 'Copy report URL',
+                            showChevron: false,
+                            onTap: () => _copyToClipboard(
+                              state.reportUrl!,
+                              'Report URL',
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _SectionHeader(label: 'CRASHLYTICS'),
+                    _SettingsCard(
+                      children: [
+                        _SettingsRow(
+                          key: WidgetKeys.profileHandledException,
+                          icon: Icons.bug_report_outlined,
+                          title: 'Log handled exception',
+                          subtitle: 'Non-fatal — app keeps running',
+                          showChevron: false,
+                          onTap: _viewModel.recordHandledException,
+                        ),
+                        _SettingsRow(
+                          key: WidgetKeys.profileTestCrash,
+                          icon: Icons.warning_amber_outlined,
+                          title: 'Force test crash',
+                          subtitle: 'Closes the app — report uploads on restart',
+                          destructive: true,
+                          showChevron: false,
+                          onTap: _confirmTestCrash,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     _SectionHeader(label: 'ABOUT'),
                     _SettingsCard(
                       children: [
@@ -449,6 +716,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (key.isEmpty) return 'Not configured';
     if (key.length <= 4) return '••••••••';
     return '${'•' * 8}${key.substring(key.length - 4)}';
+  }
+
+  static String _exportSubtitle(ProfileState state) => switch (state
+      .exportStatus) {
+    ReportExportStatus.generating => 'Building PDF…',
+    ReportExportStatus.uploading => 'Uploading to Firebase Storage…',
+    ReportExportStatus.done => 'Uploaded — link below',
+    ReportExportStatus.error => 'Last export failed — tap to retry',
+    ReportExportStatus.idle => 'Builds from the topic analyzed in Keywords',
+  };
+}
+
+class _NotificationTile extends StatelessWidget {
+  final AppNotification item;
+
+  const _NotificationTile({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final time = TimeOfDay.fromDateTime(item.receivedAt).format(context);
+
+    return ListTile(
+      leading: Icon(
+        item.receivedInForeground
+            ? Icons.notifications_active_outlined
+            : Icons.open_in_new,
+        size: 20,
+        color: AppColors.secondary,
+      ),
+      title: Text(
+        item.title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: item.body.isEmpty ? null : Text(item.body),
+      trailing: Text(
+        time,
+        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+      ),
+      isThreeLine: item.body.length > 40,
+    );
   }
 }
 
@@ -640,6 +948,7 @@ class _SettingsRow extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _SettingsRow({
+    super.key,
     this.icon,
     required this.title,
     this.subtitle,
