@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/widget_keys.dart';
+import '../../../../core/router/keyword_detail_navigation.dart';
 import '../../../../core/router/work_detail_navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/empty_state_widget.dart';
@@ -191,11 +193,17 @@ class _ResearchDashboardScreenState
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: ResearchDashboardRankingCard(
+                key: WidgetKeys.dashboardTopKeywords,
                 title: 'Top Keywords',
-                subtitle: 'Most frequent keywords in the sample',
+                subtitle: 'Tap a keyword to open its detail',
                 icon: Icons.sell_outlined,
                 items: summary.topKeywords,
                 accent: AppColors.secondary,
+                itemKeyBuilder: WidgetKeys.dashboardKeywordRow,
+                onItemTap: (item) {
+                  final keyword = item.keyword;
+                  if (keyword != null) openKeywordDetail(context, keyword);
+                },
               ),
             ),
             if (summary.emergingKeywords.length >= 2)
