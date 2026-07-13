@@ -25,8 +25,23 @@ class MessagingService {
   /// Notification đã mở app từ trạng thái terminated (nếu có).
   Future<RemoteMessage?> get initialMessage => _messaging.getInitialMessage();
 
-  Future<NotificationSettings> requestPermission() =>
-      _messaging.requestPermission();
+  /// Xin quyền hiển thị notification. Trả về `true` nếu user đồng ý —
+  /// map `AuthorizationStatus` ngay tại đây để ViewModel không phải import
+  /// kiểu của plugin.
+  Future<bool> requestPermission() async {
+    final settings = await _messaging.requestPermission();
+    return _granted(settings);
+  }
+
+  /// Trạng thái quyền hiện tại, không bật dialog.
+  Future<bool> hasPermission() async {
+    final settings = await _messaging.getNotificationSettings();
+    return _granted(settings);
+  }
+
+  static bool _granted(NotificationSettings settings) =>
+      settings.authorizationStatus == AuthorizationStatus.authorized ||
+      settings.authorizationStatus == AuthorizationStatus.provisional;
 
   /// Token của thiết bị — dán vào Firebase Console để gửi test notification.
   Future<String?> getToken() => _messaging.getToken();
