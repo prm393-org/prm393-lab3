@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/router/keyword_detail_navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/widgets/error_state_widget.dart';
@@ -171,13 +172,14 @@ class _DetailBody extends StatelessWidget {
                     runSpacing: 6,
                     children: work.keywords
                         .map(
-                          (k) => Chip(
-                            label: Text(k),
+                          (k) => ActionChip(
+                            label: Text(k.displayName),
                             labelStyle: tt.labelSmall,
                             padding: EdgeInsets.zero,
                             materialTapTargetSize:
                                 MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: cs.surfaceContainerHighest,
+                            onPressed: () => openKeywordDetail(context, k),
                           ),
                         )
                         .toList(),
