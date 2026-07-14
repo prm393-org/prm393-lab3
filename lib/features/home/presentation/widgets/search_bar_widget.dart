@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/widget_keys.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shared/presentation/viewmodels/pending_search_viewmodel.dart';
@@ -190,6 +191,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     });
 
     return TextField(
+      key: WidgetKeys.homeSearchField,
       controller: _controller,
       focusNode: _focusNode,
       onSubmitted: _submit,

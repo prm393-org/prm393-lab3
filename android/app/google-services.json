@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "659837143296-s7gn2jd049gpgp6864nuqaamrj0sufol.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.prm393.journal_trend_analyzer",
+            "certificate_hash": "9f72b852bc67ed98d2ea798cc0e171577c3089ed"
+          }
+        },
+        {
           "client_id": "659837143296-l4lmsa9vrk640f77fpanuvo61mrp5fdg.apps.googleusercontent.com",
           "client_type": 3
         }

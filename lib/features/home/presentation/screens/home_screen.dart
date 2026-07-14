@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/widget_keys.dart';
+import '../../../../core/router/work_detail_navigation.dart';
 import '../../../../core/widgets/error_state_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../../publication/domain/entities/topic.dart';
+import '../../../publication/domain/entities/work.dart';
+import '../../../publication/presentation/widgets/trend_chart.dart';
 import '../../../shared/presentation/viewmodels/selected_topic_viewmodel.dart';
+import '../viewmodels/home_dashboard_state.dart';
+import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../viewmodels/home_state.dart';
 import '../viewmodels/home_viewmodel.dart';
+import '../widgets/home_kpi_grid.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/topic_card.dart';
 import '../widgets/topic_charts.dart';
 import '../widgets/topic_filter_bar.dart';
+import '../widgets/work_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,26 +28,63 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    // `initialize()` tự bỏ qua nếu state không còn là HomeInitial, nên quay lại
-    // tab Home không nạp lại danh sách.
-    Future.microtask(() => ref.read(homeViewModelProvider.notifier).initialize());
+    Future.microtask(() {
+      if (!mounted) return;
+      // `initialize()` tự bỏ qua nếu state không còn là HomeInitial, nên quay lại
+      // tab Home không nạp lại danh sách.
+      ref.read(homeViewModelProvider.notifier).initialize();
+
+      // Topic đã chọn từ phiên trước (hoặc từ tab khác) → dựng lại dashboard.
+      final selected = ref.read(selectedTopicProvider);
+      final dashboard = ref.read(homeDashboardViewModelProvider);
+      if (selected != null && dashboard is HomeDashboardInitial) {
+        ref.read(homeDashboardViewModelProvider.notifier).loadByTopic(selected);
+      }
+    });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Chọn topic → nạp dashboard ngay tại Home (FR 4.2). Journals/Keywords cũng
+  /// lắng nghe [selectedTopicProvider] nên hai tab kia tự cập nhật theo.
   void _selectTopic(Topic topic) {
     ref.read(selectedTopicProvider.notifier).select(topic);
-    context.go('/journal');
+    ref.read(homeDashboardViewModelProvider.notifier).loadByTopic(topic);
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
+
+  void _clearTopic() {
+    ref.read(selectedTopicProvider.notifier).clear();
+    ref.read(homeDashboardViewModelProvider.notifier).clear();
+  }
+
+  void _openPublication(Work work) => openWorkDetailFromHome(context, work);
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeViewModelProvider);
     final viewModel = ref.read(homeViewModelProvider.notifier);
+    final dashboard = ref.watch(homeDashboardViewModelProvider);
     final selectedId = ref.watch(selectedTopicProvider)?.id;
 
     return CustomScrollView(
+      key: WidgetKeys.homeScreen,
+      controller: _scrollController,
       physics: const ClampingScrollPhysics(),
       slivers: [
         _buildAppBar(context),
@@ -50,6 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: SearchBarWidget(onSearch: viewModel.search),
           ),
         ),
+        ..._buildDashboard(context, dashboard),
         SliverToBoxAdapter(
           child: TopicFilterBar(
             selected: state.filter,
@@ -107,6 +152,149 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  // ── Dashboard của topic đã chọn (FR 4.2) ────────────────────────────
+
+  List<Widget> _buildDashboard(BuildContext context, HomeDashboardState state) {
+    switch (state) {
+      case HomeDashboardInitial():
+        return const [];
+
+      case HomeDashboardLoading(:final topic):
+        return [
+          SliverToBoxAdapter(
+            child: _DashboardHeader(topic: topic, onClear: _clearTopic),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(
+              key: WidgetKeys.homeDashboardLoading,
+              height: 220,
+              child: LoadingWidget(message: 'Building dashboard…'),
+            ),
+          ),
+        ];
+
+      case HomeDashboardError(:final topic, :final message):
+        return [
+          SliverToBoxAdapter(
+            child: _DashboardHeader(topic: topic, onClear: _clearTopic),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              key: WidgetKeys.homeDashboardError,
+              height: 220,
+              child: ErrorStateWidget(
+                message: message,
+                onRetry: ref.read(homeDashboardViewModelProvider.notifier).retry,
+              ),
+            ),
+          ),
+        ];
+
+      case HomeDashboardEmpty(:final topic):
+        return [
+          SliverToBoxAdapter(
+            child: _DashboardHeader(topic: topic, onClear: _clearTopic),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              key: WidgetKeys.homeDashboardEmpty,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Text(
+                'No publications found for "${topic.displayName}".',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ),
+        ];
+
+      case HomeDashboardLoaded(
+        :final summary,
+        :final trend,
+        :final publications,
+        :final trendWarning,
+      ):
+        final influential = summary.mostInfluentialPublication;
+        return [
+          SliverToBoxAdapter(
+            child: _DashboardHeader(
+              topic: summary.topic,
+              onClear: _clearTopic,
+              sampleSize: summary.sampleSize,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              key: WidgetKeys.homeDashboard,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: HomeKpiGrid(
+                summary: summary,
+                onOpenMostInfluential: influential == null
+                    ? null
+                    : () => _openPublication(influential),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
+              key: WidgetKeys.homeTrendChart,
+              child: TrendChart(
+                trend: trend,
+                title: 'Publication trend · ${summary.topic.displayName}',
+              ),
+            ),
+          ),
+          if (trendWarning != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  trendWarning,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                'Publications',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SliverList.builder(
+            key: WidgetKeys.homePublications,
+            itemCount: publications.length,
+            itemBuilder: (context, i) => KeyedSubtree(
+              key: WidgetKeys.homePublication(i),
+              child: WorkCard(
+                work: publications[i],
+                onTap: () => _openPublication(publications[i]),
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Text(
+                'Browse other topics',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ];
+    }
+  }
+
+  // ── Danh sách topic (search / duyệt) ────────────────────────────────
+
   List<Widget> _buildContent(
     BuildContext context,
     HomeState state,
@@ -115,17 +303,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ) {
     if (state is HomeLoading) {
       return [
-        const SliverFillRemaining(
-          child: LoadingWidget(message: 'Loading topics…'),
+        const SliverToBoxAdapter(
+          child: SizedBox(
+            height: 240,
+            child: LoadingWidget(message: 'Loading topics…'),
+          ),
         ),
       ];
     }
 
     if (state is HomeError) {
       return [
-        SliverFillRemaining(
-          child:
-              ErrorStateWidget(message: state.message, onRetry: viewModel.retry),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 240,
+            child: ErrorStateWidget(
+              message: state.message,
+              onRetry: viewModel.retry,
+            ),
+          ),
         ),
       ];
     }
@@ -133,22 +329,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (state is HomeLoaded) {
       if (state.topics.isEmpty) {
         return [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.search_off, size: 56, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  Text(
-                    state.query != null
-                        ? 'No topics found for "${state.query}"'
-                        : 'No topics available.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 240,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.search_off, size: 56, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    Text(
+                      state.query != null
+                          ? 'No topics found for "${state.query}"'
+                          : 'No topics available.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -180,6 +378,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ..._buildGroupedByField(context, state.topics, selectedId)
         else
           SliverList.builder(
+            key: WidgetKeys.homeTopicList,
             itemCount: state.topics.length,
             itemBuilder: (context, i) {
               final t = state.topics[i];
@@ -291,5 +490,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
     ];
+  }
+}
+
+/// Tiêu đề dashboard: topic đang xem + nút bỏ chọn để quay về danh sách.
+class _DashboardHeader extends StatelessWidget {
+  final Topic topic;
+  final VoidCallback onClear;
+  final int? sampleSize;
+
+  const _DashboardHeader({
+    required this.topic,
+    required this.onClear,
+    this.sampleSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  topic.displayName,
+                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  sampleSize == null
+                      ? 'Topic dashboard'
+                      : 'Topic dashboard · sample of $sampleSize papers',
+                  style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.close, size: 16),
+            label: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
   }
 }

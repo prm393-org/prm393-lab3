@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import pypdf; print\\('ok'\\)\")",
+      "Bash(pip list *)",
+      "Bash(pip install *)",
+      "PowerShell(flutter test --no-pub 2>&1)",
+      "PowerShell(git stash push --include-untracked -m \"wip-devb\")",
+      "PowerShell(flutter test --no-pub test/widget_test.dart 2>&1)",
+      "PowerShell(git stash pop)",
+      "PowerShell(flutter test --no-pub test/features/home 2>&1)",
+      "PowerShell(flutter test --no-pub test/features/home test/features/journal 2>&1)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}
