@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/research_dashboard_summary.dart';
 import 'chart_axis_utils.dart';
+import 'chart_placeholder_card.dart';
 
 /// #4 Emerging Keywords — đường số bài theo năm của các keyword nổi gần đây.
 class ResearchDashboardEmergingKeywords extends StatelessWidget {
@@ -25,7 +26,15 @@ class ResearchDashboardEmergingKeywords extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final valid = series.where((s) => s.points.length >= 2).toList();
-    if (valid.length < 2) return const SizedBox.shrink();
+    if (valid.length < 2) {
+      return const ChartPlaceholderCard(
+        title: 'Emerging keywords',
+        icon: Icons.trending_up,
+        message:
+            'Need at least two keywords tracked across two or more years. '
+            'Try a topic with a larger publication sample.',
+      );
+    }
 
     final years = valid.first.points.map((p) => p.year).toList();
     final minYear = years.first;

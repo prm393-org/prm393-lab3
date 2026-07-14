@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../domain/entities/research_dashboard_summary.dart';
+import 'chart_placeholder_card.dart';
 
 /// Scatter "Productivity vs Impact" dùng chung cho tác giả (#9) và tổ chức (#11):
 /// trục X = số bài, trục Y = tổng trích dẫn (thang log). Bong bóng càng to =
@@ -32,7 +33,15 @@ class ResearchDashboardImpactScatter extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final pts = items.where((e) => e.papers > 0).toList();
-    if (pts.length < 4) return const SizedBox.shrink();
+    if (pts.length < 4) {
+      return ChartPlaceholderCard(
+        title: title,
+        icon: Icons.scatter_plot_outlined,
+        message:
+            'Need at least four ${subjectNoun}s with publications in this '
+            'sample to plot productivity against impact.',
+      );
+    }
 
     final maxPapers = pts.map((e) => e.papers).fold<int>(1, math.max);
     final maxCited = pts.map((e) => e.citations).fold<int>(1, math.max);

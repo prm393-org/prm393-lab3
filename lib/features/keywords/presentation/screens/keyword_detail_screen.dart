@@ -175,14 +175,15 @@ class _KeywordDetailScreenState extends ConsumerState<KeywordDetailScreen> {
               accent: AppColors.tertiary,
             ),
           ),
-          if (summary.authorStats.length >= 4)
-            ResearchDashboardImpactScatter(
-              key: WidgetKeys.keywordDetailAuthorChart,
-              items: summary.authorStats,
-              title: 'Author Productivity vs Impact',
-              subjectNoun: 'author',
-              accent: AppColors.tertiary,
-            ),
+          // FR 4.7 đòi "author ranking list **or chart**" — luôn render, widget
+          // tự báo khi mẫu không đủ điểm để vẽ (Patrol TC7 cũng tìm key này).
+          ResearchDashboardImpactScatter(
+            key: WidgetKeys.keywordDetailAuthorChart,
+            items: summary.authorStats,
+            title: 'Author Productivity vs Impact',
+            subjectNoun: 'author',
+            accent: AppColors.tertiary,
+          ),
           // ── Related publications ────────────────────────────────
           const _SectionHeader(
             key: WidgetKeys.keywordDetailPublications,

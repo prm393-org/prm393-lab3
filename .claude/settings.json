@@ -10,7 +10,8 @@
       "PowerShell(git stash pop)",
       "PowerShell(flutter test --no-pub test/features/home 2>&1)",
       "PowerShell(flutter test --no-pub test/features/home test/features/journal 2>&1)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "PowerShell(flutter test --no-pub test/features/keywords 2>&1)"
     ]
   }
 }
