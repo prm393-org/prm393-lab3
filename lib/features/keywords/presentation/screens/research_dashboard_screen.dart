@@ -161,13 +161,12 @@ class _ResearchDashboardScreenState
               accent: AppColors.tertiary,
             ),
           ),
-          if (summary.authorStats.length >= 4)
-            ResearchDashboardImpactScatter(
-              items: summary.authorStats,
-              title: 'Author Productivity vs Impact',
-              subjectNoun: 'author',
-              accent: AppColors.tertiary,
-            ),
+          ResearchDashboardImpactScatter(
+            items: summary.authorStats,
+            title: 'Author Productivity vs Impact',
+            subjectNoun: 'author',
+            accent: AppColors.tertiary,
+          ),
           // ── Journals ────────────────────────────────────────────
           _SectionHeader(label: 'Journals'),
           Padding(
@@ -206,12 +205,12 @@ class _ResearchDashboardScreenState
                 },
               ),
             ),
-            if (summary.emergingKeywords.length >= 2)
-              ResearchDashboardEmergingKeywords(
-                series: summary.emergingKeywords,
-              ),
-            if (summary.frontierKeywords.length >= 4)
-              ResearchDashboardFrontier(keywords: summary.frontierKeywords),
+            // Không bọc trong `if` nữa: hai widget này tự hiện thẻ "not enough
+            // data" khi mẫu quá mỏng, thay vì biến mất không dấu vết.
+            ResearchDashboardEmergingKeywords(
+              series: summary.emergingKeywords,
+            ),
+            ResearchDashboardFrontier(keywords: summary.frontierKeywords),
           ],
           // ── Impact (papers) ─────────────────────────────────────
           if (summary.scatterPapers.length >= 4) ...[

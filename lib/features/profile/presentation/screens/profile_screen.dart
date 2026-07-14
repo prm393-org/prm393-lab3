@@ -10,6 +10,9 @@ import '../../../../core/data/recent_searches_store.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../firebase/firebase_providers.dart';
+import '../../../home/presentation/viewmodels/home_dashboard_state.dart';
+import '../../../home/presentation/viewmodels/home_dashboard_viewmodel.dart';
+import '../../../keywords/domain/entities/research_dashboard_summary.dart';
 import '../../../keywords/presentation/viewmodels/research_dashboard_state.dart';
 import '../../../keywords/presentation/viewmodels/research_dashboard_viewmodel.dart';
 import '../../../publication/domain/usecases/search_topics.dart';
@@ -273,27 +276,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  /// Report Export (FR 4.8): lấy dashboard đang mở ở tab Keywords làm dữ liệu.
-  /// Không có topic nào được phân tích thì không có gì để xuất.
+  /// Report Export (FR 4.8): "export **dashboard** analytics" — mà dashboard
+  /// theo FR 4.2 là màn Home. Ưu tiên lấy từ Home; nếu người dùng vào thẳng
+  /// Keywords mà chưa qua Home thì dùng dashboard của tab đó.
+  ///
+  /// Đọc cả hai nguồn thay vì chỉ Keywords: nếu buộc phải ghé đúng một tab mới
+  /// export được thì bấm Export lúc nào cũng có thể trượt (Patrol TC9 cũng vậy).
+  ResearchDashboardSummary? _dashboardForReport() {
+    final home = ref.read(homeDashboardViewModelProvider);
+    if (home is HomeDashboardLoaded) return home.summary;
+
+    final keywords = ref.read(researchDashboardViewModelProvider);
+    if (keywords is ResearchDashboardLoaded) return keywords.summary;
+
+    return null;
+  }
+
   Future<void> _exportReport() async {
-    final dashboard = ref.read(researchDashboardViewModelProvider);
-    if (dashboard is! ResearchDashboardLoaded) {
+    final summary = _dashboardForReport();
+    if (summary == null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: const Text(
-              'Analyze a topic in Keywords first — the report is built from it.',
+              'Select a topic on Home first — the report is built from its dashboard.',
             ),
             action: SnackBarAction(
-              label: 'Keywords',
-              onPressed: () => context.go('/keywords'),
+              label: 'Home',
+              onPressed: () => context.go('/home'),
             ),
           ),
         );
       return;
     }
-    await _viewModel.exportReport(dashboard.summary);
+    await _viewModel.exportReport(summary);
   }
 
   Future<void> _copyToClipboard(String value, String label) async {

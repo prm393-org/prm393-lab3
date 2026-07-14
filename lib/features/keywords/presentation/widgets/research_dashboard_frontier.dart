@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../domain/entities/research_dashboard_summary.dart';
 import 'chart_axis_utils.dart';
+import 'chart_placeholder_card.dart';
 
 /// #27 Research Frontier Detection — bong bóng keyword: trục X = năm trung bình
 /// (càng phải = càng mới), trục Y = số bài (khối lượng), cỡ = tổng trích dẫn.
@@ -22,7 +23,15 @@ class ResearchDashboardFrontier extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final pts = keywords.where((k) => k.papers > 0).toList();
-    if (pts.length < 4) return const SizedBox.shrink();
+    if (pts.length < 4) {
+      return const ChartPlaceholderCard(
+        title: 'Research frontier',
+        icon: Icons.bubble_chart_outlined,
+        message:
+            'Need at least four recurring keywords in this sample to map the '
+            'research frontier.',
+      );
+    }
 
     final minYear = pts.map((k) => k.meanYear).reduce(math.min);
     final maxYear = pts.map((k) => k.meanYear).reduce(math.max);
