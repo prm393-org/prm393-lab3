@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/widget_keys.dart';
 import '../../../../core/utils/number_formatter.dart';
 import '../../../publication/domain/entities/journal_summary.dart';
 import '../../../publication/domain/entities/work.dart';
@@ -34,7 +35,7 @@ class _JournalDetailScreenState extends ConsumerState<JournalDetailScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(journalDetailViewModelProvider);
     return Scaffold(
-      key: const Key('journal_detail_screen'),
+      key: WidgetKeys.journalDetailScreen,
       appBar: AppBar(
         title: const Text('Journal Detail'),
         actions: [
@@ -184,7 +185,7 @@ class _IdentityCard extends StatelessWidget {
       if (journal.publisher != null) journal.publisher!,
     ];
     return Semantics(
-      key: const Key('journal_identity_card'),
+      key: WidgetKeys.journalDetailIdentity,
       container: true,
       label:
           '${journal.displayName}. ${journal.publicationCount} publications. ${journal.citationCount} citations. Average ${journal.averageCitations.toStringAsFixed(1)} citations per publication.',
@@ -228,7 +229,7 @@ class _IdentityCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _Metric(
-                      key: const Key('journal_total_publications'),
+                      key: WidgetKeys.journalTotalPublications,
                       label: 'Publications',
                       visual: NumberFormatter.compact(journal.publicationCount),
                       exact: journal.publicationCount.toString(),
@@ -236,7 +237,7 @@ class _IdentityCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _Metric(
-                      key: const Key('journal_total_citations'),
+                      key: WidgetKeys.journalTotalCitations,
                       label: 'Citations',
                       visual:
                           '${NumberFormatter.compact(journal.citationCount)}${journal.isCitationEstimate ? '*' : ''}',
@@ -245,7 +246,7 @@ class _IdentityCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _Metric(
-                      key: const Key('journal_average_citations'),
+                      key: WidgetKeys.journalAverageCitations,
                       label: 'Avg cites',
                       visual: journal.averageCitations.toStringAsFixed(1),
                       exact: journal.averageCitations.toStringAsFixed(1),

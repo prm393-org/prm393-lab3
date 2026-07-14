@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/number_formatter.dart';
+import '../../../../core/constants/widget_keys.dart';
 import '../../../publication/domain/entities/journal_summary.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../shared/presentation/viewmodels/selected_topic_viewmodel.dart';
@@ -36,9 +37,24 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       final viewModel = ref.read(journalViewModelProvider.notifier);
       topic == null ? viewModel.clear() : viewModel.loadByTopic(topic);
     });
+    final selected = ref.watch(selectedTopicProvider);
     final state = ref.watch(journalViewModelProvider);
+
+    // Branch IndexedStack có thể mount sau khi topic đã chọn — listen bỏ lỡ
+    // update đó. Bù bằng load khi còn Initial mà topic đã có.
+    if (selected != null && state is JournalInitial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(journalViewModelProvider) is! JournalInitial) return;
+        final topic = ref.read(selectedTopicProvider);
+        if (topic != null) {
+          ref.read(journalViewModelProvider.notifier).loadByTopic(topic);
+        }
+      });
+    }
+
     return CustomScrollView(
-      key: const Key('journals_screen'),
+      key: WidgetKeys.journalsScreen,
       slivers: [_appBar(context, state), ..._bodySlivers(context, state)],
     );
   }
@@ -149,7 +165,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             constraints: const BoxConstraints(maxWidth: 1100),
             child: Padding(
               padding: EdgeInsets.fromLTRB(padding, 8, padding, 24),
-              child: _KpiStrip(state: state),
+              child: _KpiStrip(key: WidgetKeys.journalsKpiStrip, state: state),
             ),
           ),
         ),
@@ -303,7 +319,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 class _KpiStrip extends StatelessWidget {
   final JournalLoaded state;
 
-  const _KpiStrip({required this.state});
+  const _KpiStrip({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -525,6 +541,7 @@ class _RankingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      key: WidgetKeys.journalsList,
       children: [
         Row(
           children: [
@@ -540,7 +557,7 @@ class _RankingSection extends StatelessWidget {
         const SizedBox(height: 12),
         for (var i = 0; i < journals.length; i++) ...[
           JournalCard(
-            key: Key('journal_card_${journals[i].shortId}'),
+            key: WidgetKeys.journalCard(i),
             journal: journals[i],
             rank: i + 1,
             onTap: journals[i].hasValidId ? () => onOpen(journals[i]) : null,

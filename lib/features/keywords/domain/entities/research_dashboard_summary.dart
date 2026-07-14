@@ -144,6 +144,32 @@ class ResearchDashboardSummary extends Equatable {
   Work? get mostInfluentialPublication =>
       topPapers.isEmpty ? null : topPapers.first;
 
+  ResearchDashboardSummary copyWith({
+    List<RankedResearchItem>? topKeywords,
+  }) {
+    return ResearchDashboardSummary(
+      topic: topic,
+      totalPublications: totalPublications,
+      totalCitations: totalCitations,
+      averageCitations: averageCitations,
+      mostActiveYear: mostActiveYear,
+      sampleSize: sampleSize,
+      yearlyTrend: yearlyTrend,
+      citationTrend: citationTrend,
+      topJournals: topJournals,
+      topAuthors: topAuthors,
+      topKeywords: topKeywords ?? this.topKeywords,
+      topInstitutions: topInstitutions,
+      authorStats: authorStats,
+      institutionStats: institutionStats,
+      journalStats: journalStats,
+      emergingKeywords: emergingKeywords,
+      frontierKeywords: frontierKeywords,
+      topPapers: topPapers,
+      scatterPapers: scatterPapers,
+    );
+  }
+
   @override
   List<Object?> get props => [
     topic,

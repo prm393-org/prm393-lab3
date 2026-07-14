@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/widget_keys.dart';
 import '../theme/app_colors.dart';
 
 class MainScaffold extends StatelessWidget {
@@ -13,21 +14,25 @@ class MainScaffold extends StatelessWidget {
       icon: Icons.home_outlined,
       selectedIcon: Icons.home,
       label: 'Home',
+      key: WidgetKeys.navHome,
     ),
     _NavDestination(
       icon: Icons.article_outlined,
       selectedIcon: Icons.article,
       label: 'Journal',
+      key: WidgetKeys.navJournal,
     ),
     _NavDestination(
       icon: Icons.tag_outlined,
       selectedIcon: Icons.tag,
       label: 'Keywords',
+      key: WidgetKeys.navKeywords,
     ),
     _NavDestination(
       icon: Icons.person_outline,
       selectedIcon: Icons.person,
       label: 'Profile',
+      key: WidgetKeys.navProfile,
     ),
   ];
 
@@ -73,6 +78,7 @@ class MainScaffold extends StatelessWidget {
                 for (var i = 0; i < _destinations.length; i++)
                   Expanded(
                     child: _NavBarItem(
+                      key: _destinations[i].key,
                       destination: _destinations[i],
                       selected: navigationShell.currentIndex == i,
                       indicatorColor: indicatorColor,
@@ -95,11 +101,13 @@ class _NavDestination {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
+  final Key key;
 
   const _NavDestination({
     required this.icon,
     required this.selectedIcon,
     required this.label,
+    required this.key,
   });
 }
 
@@ -110,6 +118,7 @@ class _NavBarItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _NavBarItem({
+    super.key,
     required this.destination,
     required this.selected,
     required this.indicatorColor,

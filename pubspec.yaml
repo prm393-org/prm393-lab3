@@ -65,6 +65,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  patrol: ^4.7.0
+
+patrol:
+  app_name: Journal Trend Analyzer
+  test_directory: patrol_tests
+  android:
+    package_name: com.prm393.journal_trend_analyzer
+  ios:
+    bundle_id: com.prm393.journalTrendAnalyzer
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

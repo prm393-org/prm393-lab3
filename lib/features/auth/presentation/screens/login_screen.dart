@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/widget_keys.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/auth_providers.dart';
 
@@ -23,6 +24,7 @@ class LoginScreen extends ConsumerWidget {
     });
 
     return Scaffold(
+      key: WidgetKeys.loginScreen,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -79,6 +81,7 @@ class LoginScreen extends ConsumerWidget {
                       width: double.infinity,
                       height: 52,
                       child: FilledButton(
+                        key: WidgetKeys.loginGoogleButton,
                         onPressed: authState.isLoading
                             ? null
                             : () => ref

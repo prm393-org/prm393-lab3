@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/api_client.dart';
+import '../../domain/entities/keyword.dart';
 import '../../domain/entities/trend_point.dart';
 import '../models/journal_summary_model.dart';
 import '../models/topic_model.dart';
@@ -48,6 +49,12 @@ abstract class PublicationRemoteDatasource {
     int limit = 10,
   });
 
+  /// Top keywords của topic qua `group_by=keywords.id` (1 request).
+  Future<List<({Keyword keyword, int count})>> getKeywordsByTopic({
+    required String topicId,
+    int limit = 8,
+  });
+
   Future<JournalSummaryModel> getJournalById(String journalId);
 
   Future<PageResult<WorkModel>> getWorksByJournal({
@@ -60,8 +67,6 @@ abstract class PublicationRemoteDatasource {
 }
 
 class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
-  static const _citationSampleSize = 200;
-
   final ApiClient _apiClient;
   PublicationRemoteDatasourceImpl(this._apiClient);
 
@@ -126,6 +131,10 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
   }) async {
     final safeLimit = limit.clamp(1, 200);
     try {
+      // Chỉ 1 request `group_by`. Trước đây Future.wait gọi
+      // getJournalById + citation sample cho mọi journal song song
+      // → OpenAlex 429 Too Many Requests (TC4 fail).
+      // Metadata đầy đủ / citation theo topic lấy ở Journal Detail.
       final response = await _apiClient.dio.get(
         '/works',
         queryParameters: {
@@ -136,29 +145,12 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
       );
       final data = response.data as Map<String, dynamic>?;
       final groups = data?['group_by'] as List<dynamic>? ?? const [];
-      final validGroups = groups
+      return groups
           .whereType<Map<String, dynamic>>()
           .where((group) => _shortId('${group['key']}').startsWith('S'))
-          .take(safeLimit);
-
-      return Future.wait(
-        validGroups.map((group) async {
-          final sourceId = '${group['key']}';
-          final publicationCount = (group['count'] as num?)?.toInt() ?? 0;
-          final metadata = await getJournalById(sourceId);
-          final citationMetrics = await _getTopicCitationMetrics(
-            topicId: topicId,
-            journalId: sourceId,
-            publicationCount: publicationCount,
-          );
-          return metadata.withTopicMetrics(
-            publicationCount: publicationCount,
-            citationCount: citationMetrics.citations,
-            isCitationEstimate: citationMetrics.isEstimate,
-            fallbackDisplayName: _readString(group['key_display_name']),
-          );
-        }),
-      );
+          .take(safeLimit)
+          .map(_journalFromGroupBy)
+          .toList(growable: false);
     } on DioException catch (error) {
       throw _mapDioError(error);
     } on ServerException {
@@ -172,39 +164,55 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
     }
   }
 
-  Future<({int citations, bool isEstimate})> _getTopicCitationMetrics({
-    required String topicId,
-    required String journalId,
-    required int publicationCount,
-  }) async {
-    if (publicationCount <= 0) {
-      return (citations: 0, isEstimate: false);
-    }
-    final sampleSize = publicationCount.clamp(1, _citationSampleSize);
-    final params = <String, dynamic>{
-      'filter':
-          'primary_topic.id:${_shortId(topicId)},primary_location.source.id:${_shortId(journalId)}',
-      'per_page': sampleSize,
-      'select': 'id,cited_by_count',
-    };
-    final isEstimate = publicationCount > _citationSampleSize;
-    if (isEstimate) {
-      params
-        ..['sample'] = _citationSampleSize
-        ..['seed'] = _stableSeed(journalId);
-    }
-
-    final result = await _request('/works', params, WorkModel.fromJson);
-    final sampleCitations = result.items.fold<int>(
-      0,
-      (total, work) => total + work.citedByCount,
+  JournalSummaryModel _journalFromGroupBy(Map<String, dynamic> group) {
+    final sourceId = '${group['key']}';
+    final short = _shortId(sourceId);
+    return JournalSummaryModel(
+      id: sourceId.contains('/') ? sourceId : 'https://openalex.org/$short',
+      displayName: _readString(group['key_display_name']) ?? 'Unknown Source',
+      publicationCount: (group['count'] as num?)?.toInt() ?? 0,
+      citationCount: 0,
+      isCitationEstimate: true,
     );
-    if (!isEstimate || result.items.isEmpty) {
-      return (citations: sampleCitations, isEstimate: false);
+  }
+
+  @override
+  Future<List<({Keyword keyword, int count})>> getKeywordsByTopic({
+    required String topicId,
+    int limit = 8,
+  }) async {
+    final safeLimit = limit.clamp(1, 200);
+    try {
+      final response = await _apiClient.dio.get(
+        '/works',
+        queryParameters: {
+          'filter': 'primary_topic.id:${_shortId(topicId)}',
+          'group_by': 'keywords.id',
+          'per_page': safeLimit,
+        },
+      );
+      final data = response.data as Map<String, dynamic>?;
+      final groups = data?['group_by'] as List<dynamic>? ?? const [];
+      final items = <({Keyword keyword, int count})>[];
+      for (final raw in groups) {
+        if (raw is! Map<String, dynamic>) continue;
+        final key = _readString(raw['key']);
+        final name = _readString(raw['key_display_name']);
+        if (key == null || name == null) continue;
+        if (!key.contains('keywords')) continue;
+        final id = key.contains('/') ? key : 'https://openalex.org/keywords/$key';
+        items.add((
+          keyword: Keyword(id: id, displayName: name),
+          count: (raw['count'] as num?)?.toInt() ?? 0,
+        ));
+        if (items.length >= safeLimit) break;
+      }
+      return items;
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    } catch (error) {
+      throw ParsingException('Unexpected error: $error');
     }
-    final estimated = (sampleCitations / result.items.length * publicationCount)
-        .round();
-    return (citations: estimated, isEstimate: true);
   }
 
   @override
@@ -312,14 +320,6 @@ class PublicationRemoteDatasourceImpl implements PublicationRemoteDatasource {
   /// OpenAlex đòi dạng `keywords/<slug>`. Nhận cả URL đầy đủ, `keywords/slug`
   /// hoặc slug trần (path param của route detail).
   String _keywordFilterId(String raw) => 'keywords/${_shortId(raw.trim())}';
-
-  int _stableSeed(String value) {
-    var hash = 17;
-    for (final codeUnit in value.codeUnits) {
-      hash = (hash * 31 + codeUnit) & 0x7fffffff;
-    }
-    return hash;
-  }
 
   String? _readString(dynamic value) {
     if (value is! String) return null;

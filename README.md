@@ -64,19 +64,29 @@ Remote Config cần ít nhất hai tham số:
 
 ```bash
 flutter run                               # chạy trên device/emulator
-flutter analyze                           # lint (flutter_lints)
+flutter analyze                           # lint
 flutter test                              # unit + widget test
-flutter test test/path/to/foo_test.dart   # một file test
-flutter build apk                         # build APK
+flutter build apk
 ```
 
-E2E với Patrol:
+### Patrol E2E (Lab Mục 8 — 11 TC)
 
 ```bash
-dart pub global activate patrol_cli
-patrol test                                    # toàn bộ
+# Cài CLI (một lần) — thêm %LOCALAPPDATA%\Pub\Cache\bin vào PATH
+flutter pub global activate patrol_cli
+
+# Emulator/device đang bật + đã login Google account trên máy
+flutter devices
+
 patrol test --target patrol_tests/authentication_test.dart
+patrol test --target patrol_tests/publication_test.dart
+patrol test
+
+# Nếu emulator có nhiều Google account:
+patrol test --dart-define=PATROL_GOOGLE_EMAIL=you@gmail.com
 ```
+
+Thư mục `patrol_tests/` map 11 TC. Selector dùng `WidgetKeys` (`lib/core/constants/widget_keys.dart`).
 
 ---
 

@@ -54,9 +54,27 @@ class _ResearchDashboardScreenState
       }
     });
 
+    final selected = ref.watch(selectedTopicProvider);
     final state = ref.watch(researchDashboardViewModelProvider);
 
+    if (selected != null && state is ResearchDashboardInitial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (ref.read(researchDashboardViewModelProvider)
+            is! ResearchDashboardInitial) {
+          return;
+        }
+        final topic = ref.read(selectedTopicProvider);
+        if (topic != null) {
+          ref
+              .read(researchDashboardViewModelProvider.notifier)
+              .loadByTopic(topic);
+        }
+      });
+    }
+
     return Scaffold(
+      key: WidgetKeys.keywordsScreen,
       appBar: AppBar(
         title: const Text('Keywords'),
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -120,6 +138,7 @@ class _ResearchDashboardScreenState
     return RefreshIndicator(
       onRefresh: retry,
       child: ListView(
+        key: WidgetKeys.keywordsList,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: 12, bottom: 28),
         children: [
@@ -130,8 +149,36 @@ class _ResearchDashboardScreenState
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ResearchDashboardKpiGrid(summary: summary),
+            child: ResearchDashboardKpiGrid(
+              key: WidgetKeys.dashboardKpiGrid,
+              summary: summary,
+            ),
           ),
+          // Keywords ngay sau KPI — tab này ưu tiên Top Keywords (TC6/TC7
+          // không phải cuộn qua Authors/Journals mới tới).
+          if (summary.topKeywords.isNotEmpty) ...[
+            _SectionHeader(label: 'Keywords'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ResearchDashboardRankingCard(
+                key: WidgetKeys.dashboardTopKeywords,
+                title: 'Top Keywords',
+                subtitle: 'Tap a keyword to open its detail',
+                icon: Icons.sell_outlined,
+                items: summary.topKeywords,
+                accent: AppColors.secondary,
+                itemKeyBuilder: WidgetKeys.dashboardKeywordRow,
+                onItemTap: (item) {
+                  final keyword = item.keyword;
+                  if (keyword != null) openKeywordDetail(context, keyword);
+                },
+              ),
+            ),
+            ResearchDashboardEmergingKeywords(
+              series: summary.emergingKeywords,
+            ),
+            ResearchDashboardFrontier(keywords: summary.frontierKeywords),
+          ],
           // ── Trends ──────────────────────────────────────────────
           if (summary.yearlyTrend.length >= 2) ...[
             _SectionHeader(label: 'Trends'),
@@ -186,32 +233,6 @@ class _ResearchDashboardScreenState
               subjectNoun: 'journal',
               accent: AppColors.primary,
             ),
-          // ── Keywords ────────────────────────────────────────────
-          if (summary.topKeywords.isNotEmpty) ...[
-            _SectionHeader(label: 'Keywords'),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ResearchDashboardRankingCard(
-                key: WidgetKeys.dashboardTopKeywords,
-                title: 'Top Keywords',
-                subtitle: 'Tap a keyword to open its detail',
-                icon: Icons.sell_outlined,
-                items: summary.topKeywords,
-                accent: AppColors.secondary,
-                itemKeyBuilder: WidgetKeys.dashboardKeywordRow,
-                onItemTap: (item) {
-                  final keyword = item.keyword;
-                  if (keyword != null) openKeywordDetail(context, keyword);
-                },
-              ),
-            ),
-            // Không bọc trong `if` nữa: hai widget này tự hiện thẻ "not enough
-            // data" khi mẫu quá mỏng, thay vì biến mất không dấu vết.
-            ResearchDashboardEmergingKeywords(
-              series: summary.emergingKeywords,
-            ),
-            ResearchDashboardFrontier(keywords: summary.frontierKeywords),
-          ],
           // ── Impact (papers) ─────────────────────────────────────
           if (summary.scatterPapers.length >= 4) ...[
             _SectionHeader(label: 'Impact'),

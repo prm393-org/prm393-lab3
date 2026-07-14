@@ -36,6 +36,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Patrol generated bundle
+patrol_tests/test_bundle.dart
+patrol_test/test_bundle.dart
+
 # Symbolication related
 app.*.symbols
 

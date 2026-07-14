@@ -87,14 +87,16 @@ class ResearchDashboardRankingCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             for (var index = 0; index < items.length; index++) ...[
-              _RankingRow(
+              KeyedSubtree(
                 key: itemKeyBuilder?.call(index),
-                item: items[index],
-                maxCount: maxCount,
-                accent: accent,
-                onTap: onItemTap == null
-                    ? null
-                    : () => onItemTap!(items[index]),
+                child: _RankingRow(
+                  item: items[index],
+                  maxCount: maxCount,
+                  accent: accent,
+                  onTap: onItemTap == null
+                      ? null
+                      : () => onItemTap!(items[index]),
+                ),
               ),
               if (index != items.length - 1) const SizedBox(height: 10),
             ],
@@ -112,7 +114,6 @@ class _RankingRow extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _RankingRow({
-    super.key,
     required this.item,
     required this.maxCount,
     required this.accent,

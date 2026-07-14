@@ -35,13 +35,18 @@ class SearchTopics implements UseCase<Paged<Topic>, SearchTopicsParams> {
   SearchTopics(this._repository);
 
   @override
-  Future<Either<Failure, Paged<Topic>>> call(SearchTopicsParams params) =>
-      _repository.searchTopics(
-        query: params.query,
-        sort: params.filter.apiSort,
-        page: params.page,
-        perPage: params.perPage,
-      );
+  Future<Either<Failure, Paged<Topic>>> call(SearchTopicsParams params) {
+    final hasQuery = params.query != null && params.query!.trim().isNotEmpty;
+    // Có query → relevance (OpenAlex). Sort works_count lúc search sẽ trả
+    // topic "phổ biến" lệch nghĩa (vd. geochemistry) → ít/không có keywords.
+    final sort = hasQuery ? 'relevance_score:desc' : params.filter.apiSort;
+    return _repository.searchTopics(
+      query: params.query,
+      sort: sort,
+      page: params.page,
+      perPage: params.perPage,
+    );
+  }
 }
 
 class SearchTopicsParams extends Equatable {

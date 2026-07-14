@@ -45,7 +45,8 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
   client.setCredentials(
     apiKey: apiKey.isEmpty ? null : apiKey,
-    mailto: mailto.isEmpty ? null : mailto,
+    // OpenAlex polite pool: mailto rỗng → rate limit thấp, group_by dễ 429.
+    mailto: mailto.isEmpty ? 'journal-trend-analyzer@students.fpt.edu.vn' : mailto,
   );
   return client;
 });

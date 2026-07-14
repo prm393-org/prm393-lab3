@@ -383,6 +383,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemBuilder: (context, i) {
               final t = state.topics[i];
               return TopicCard(
+                key: WidgetKeys.homeTopic(i),
                 topic: t,
                 isSelected: t.id == selectedId,
                 onTap: () => _selectTopic(t),

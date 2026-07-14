@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../keywords/domain/entities/research_dashboard_summary.dart';
+import '../../../publication/data/datasources/publication_remote_datasource.dart';
+import '../../../publication/domain/entities/keyword.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../publication/domain/usecases/get_topic_trend.dart';
 import '../../../publication/domain/usecases/get_works_by_topic.dart';
@@ -27,13 +30,16 @@ class HomeDashboardViewModel extends Notifier<HomeDashboardState> {
 
   GetWorksByTopic get _getWorksByTopic => ref.read(getWorksByTopicProvider);
   GetTopicTrend get _getTopicTrend => ref.read(getTopicTrendProvider);
+  PublicationRemoteDatasource get _datasource =>
+      ref.read(publicationRemoteDatasourceProvider);
 
   Future<void> loadByTopic(Topic topic) async {
     _topic = topic;
     final requestId = ++_requestId;
     state = HomeDashboardLoading(topic);
 
-    // Hai request độc lập → chạy song song.
+    // Works + trend + top keywords (group_by) chạy song song — 3 request,
+    // tránh phụ thuộc field `keywords` trên từng work (thường trống → TC6/TC7).
     final worksFuture = _getWorksByTopic(
       GetWorksByTopicParams(
         topicId: topic.shortId,
@@ -48,10 +54,28 @@ class HomeDashboardViewModel extends Notifier<HomeDashboardState> {
     final worksResult = await worksFuture;
     final trendResult = await trendFuture;
 
-    // Bỏ qua kết quả của request đã bị thay thế bởi lần chọn topic mới hơn.
+    // Keywords group_by sau works (tránh 429 khi 3 request cùng lúc).
+    var keywordGroups = <({Keyword keyword, int count})>[];
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      keywordGroups = await _datasource.getKeywordsByTopic(
+        topicId: topic.shortId,
+        limit: 8,
+      );
+    } catch (_) {
+      try {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        keywordGroups = await _datasource.getKeywordsByTopic(
+          topicId: topic.shortId,
+          limit: 8,
+        );
+      } catch (_) {
+        keywordGroups = const [];
+      }
+    }
+
     if (requestId != _requestId || !ref.mounted) return;
 
-    // Trend lỗi không đủ để chặn cả dashboard — vẫn còn trend dựng từ mẫu.
     final trend = trendResult.fold((_) => null, (points) => points);
 
     worksResult.fold(
@@ -61,10 +85,22 @@ class HomeDashboardViewModel extends Notifier<HomeDashboardState> {
           state = HomeDashboardEmpty(topic);
           return;
         }
-        final summary = ref.read(buildResearchDashboardProvider)(
+        var summary = ref.read(buildResearchDashboardProvider)(
           topic: topic,
           worksPage: paged,
         );
+        if (keywordGroups.isNotEmpty) {
+          summary = summary.copyWith(
+            topKeywords: [
+              for (final g in keywordGroups)
+                RankedResearchItem(
+                  name: g.keyword.displayName,
+                  count: g.count,
+                  keyword: g.keyword,
+                ),
+            ],
+          );
+        }
         final resolvedTrend = (trend == null || trend.isEmpty)
             ? summary.yearlyTrend
             : trend;

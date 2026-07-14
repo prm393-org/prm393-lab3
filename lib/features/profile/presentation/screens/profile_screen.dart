@@ -461,6 +461,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final savedItems = prefs.getStringList(AppConstants.prefSavedTopics) ?? [];
 
     return Scaffold(
+          key: WidgetKeys.profileScreen,
           backgroundColor: pageBg,
           appBar: AppBar(
             title: const Text('Profile'),
@@ -798,6 +799,7 @@ class _UserHeader extends StatelessWidget {
     final url = photoUrl;
 
     return DecoratedBox(
+      key: WidgetKeys.profileUserHeader,
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(14),
@@ -870,6 +872,7 @@ class _UserHeader extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
+                key: WidgetKeys.profileSignOutButton,
                 onPressed: onSignOut,
                 icon: const Icon(Icons.logout, size: 18),
                 label: const Text('Sign out'),

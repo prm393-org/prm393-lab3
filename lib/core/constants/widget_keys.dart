@@ -7,10 +7,23 @@ import 'package:flutter/widgets.dart';
 abstract final class WidgetKeys {
   WidgetKeys._();
 
+  // ── Auth / Login (FR 4.1 · Patrol TC1 / TC11) ─────────────────────
+  static const loginScreen = Key('login_screen');
+  static const loginGoogleButton = Key('login_google_button');
+
+  // ── Bottom navigation ─────────────────────────────────────────────
+  static const navHome = Key('nav_home');
+  static const navJournal = Key('nav_journal');
+  static const navKeywords = Key('nav_keywords');
+  static const navProfile = Key('nav_profile');
+
   // ── Home (FR 4.2 · Patrol TC2) ────────────────────────────────────
   static const homeScreen = Key('home_screen');
   static const homeSearchField = Key('home_search_field');
   static const homeTopicList = Key('home_topic_list');
+
+  /// Topic thứ [index] trong danh sách kết quả search.
+  static Key homeTopic(int index) => Key('home_topic_$index');
 
   /// Dashboard của topic đã chọn.
   static const homeDashboard = Key('home_dashboard');
@@ -36,6 +49,21 @@ abstract final class WidgetKeys {
   static const publicationDetailScreen = Key('publication_detail_screen');
   static const publicationDetailTitle = Key('publication_detail_title');
 
+  // ── Journals (FR 4.4 · Patrol TC4 / TC5) ──────────────────────────
+  static const journalsScreen = Key('journals_screen');
+  static const journalsList = Key('journals_list');
+  static const journalsKpiStrip = Key('journals_kpi_strip');
+
+  /// Journal thứ [index] trong ranking — TC5 tap để mở detail.
+  static Key journalCard(int index) => Key('journal_card_$index');
+
+  static const journalDetailScreen = Key('journal_detail_screen');
+  static const journalDetailIdentity = Key('journal_identity_card');
+  static const journalTotalPublications = Key('journal_total_publications');
+  static const journalTotalCitations = Key('journal_total_citations');
+  static const journalAverageCitations = Key('journal_average_citations');
+  static const journalRelatedPublications = Key('journal_related_publications');
+
   // ── Keyword Detail (FR 4.7 · Patrol TC7) ──────────────────────────
   static const keywordDetailScreen = Key('keyword_detail_screen');
   static const keywordDetailHeader = Key('keyword_detail_header');
@@ -54,12 +82,20 @@ abstract final class WidgetKeys {
   static Key keywordDetailPublication(int index) =>
       Key('keyword_detail_publication_$index');
 
-  // ── Research Dashboard (FR 4.6) ───────────────────────────────────
+  // ── Research Dashboard (FR 4.6 · Patrol TC6) ──────────────────────
+  static const keywordsScreen = Key('keywords_screen');
+  static const keywordsList = Key('keywords_list');
   static const dashboardTopKeywords = Key('dashboard_top_keywords');
+  static const dashboardKpiGrid = Key('dashboard_kpi_grid');
 
   /// Dòng keyword thứ [index] trong bảng Top Keywords — TC7 tap vào đây để
   /// mở Keyword Detail.
   static Key dashboardKeywordRow(int index) => Key('dashboard_keyword_$index');
+
+  // ── Profile (FR 4.8 · Patrol TC8 / TC9 / TC10 / TC11) ─────────────
+  static const profileScreen = Key('profile_screen');
+  static const profileUserHeader = Key('profile_user_header');
+  static const profileSignOutButton = Key('profile_sign_out_button');
 
   // ── Profile · Notifications (FR 4.8 · FCM) ────────────────────────
   static const profileNotificationPermission = Key(

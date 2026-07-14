@@ -7,6 +7,7 @@ import 'package:journal_trend_analyzer/features/publication/data/models/journal_
 import 'package:journal_trend_analyzer/features/publication/data/models/topic_model.dart';
 import 'package:journal_trend_analyzer/features/publication/data/models/work_model.dart';
 import 'package:journal_trend_analyzer/features/publication/data/repositories/publication_repository_impl.dart';
+import 'package:journal_trend_analyzer/features/publication/domain/entities/keyword.dart';
 import 'package:journal_trend_analyzer/features/publication/domain/entities/trend_point.dart';
 
 void main() {
@@ -70,6 +71,15 @@ class _FakeDatasource implements PublicationRemoteDatasource {
   }) async {
     if (throwServerError) _throw();
     return journals;
+  }
+
+  @override
+  Future<List<({Keyword keyword, int count})>> getKeywordsByTopic({
+    required String topicId,
+    int limit = 8,
+  }) async {
+    if (throwServerError) _throw();
+    return const [];
   }
 
   @override
