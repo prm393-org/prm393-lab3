@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/core_providers.dart';
+import '../../../../firebase/firebase_providers.dart';
 import '../../../publication/domain/entities/topic.dart';
 import '../../../publication/domain/usecases/search_topics.dart';
 import '../../../publication/providers/publication_providers.dart';
@@ -34,8 +37,19 @@ class HomeViewModel extends Notifier<HomeState> {
     _query = query.trim().isEmpty ? null : query.trim();
     if (_query != null) {
       ref.read(recentSearchesStoreProvider).add(_query!);
+      _logSearchTopic(_query!);
     }
     return _load(reset: true);
+  }
+
+  /// Analytics `search_topic` (mục 5 của đề bài). Fire-and-forget: lỗi Analytics
+  /// không được làm hỏng kết quả tìm kiếm của người dùng.
+  void _logSearchTopic(String keyword) {
+    unawaited(
+      ref.read(analyticsServiceProvider).logSearchTopic(keyword).catchError(
+            (_) {},
+          ),
+    );
   }
 
   Future<void> changeFilter(TopicSortFilter filter) {

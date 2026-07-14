@@ -50,6 +50,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'detail/:workId',
+                    builder: (context, state) {
+                      final workId = state.pathParameters['workId']!;
+                      final preview = state.extra is Work
+                          ? state.extra as Work
+                          : null;
+                      return PublicationDetailScreen(
+                        workId: workId,
+                        preview: preview,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),

@@ -13,12 +13,17 @@ class FakePublicationRepository implements PublicationRepository {
     ServerFailure('Missing journal'),
   );
   final List<Either<Failure, Paged<Work>>> worksByJournalResults = [];
+  Either<Failure, Paged<Work>>? worksByTopicResult;
+  Either<Failure, List<TrendPoint>> topicTrendResult = const Right([]);
+  Either<Failure, Work> workByIdResult = const Left(ServerFailure('Not used'));
   int journalsCalls = 0;
   int journalCalls = 0;
   int worksByJournalCalls = 0;
+  int worksByTopicCalls = 0;
   int? lastJournalLimit;
   String? lastWorksSort;
   int? lastWorksPage;
+  String? lastTopicId;
 
   @override
   Future<Either<Failure, List<JournalSummary>>> getJournalsByTopic({
@@ -60,12 +65,12 @@ class FakePublicationRepository implements PublicationRepository {
 
   @override
   Future<Either<Failure, Work>> getWorkById(String workId) async =>
-      const Left(ServerFailure('Not used'));
+      workByIdResult;
 
   @override
   Future<Either<Failure, List<TrendPoint>>> getTopicTrend(
     String topicId,
-  ) async => const Right([]);
+  ) async => topicTrendResult;
 
   @override
   Future<Either<Failure, List<TrendPoint>>> getKeywordTrend(
@@ -88,8 +93,13 @@ class FakePublicationRepository implements PublicationRepository {
     int perPage = 25,
     int? year,
     String sort = 'cited_by_count:desc',
-  }) async =>
-      Right(Paged(items: const [], total: 0, page: page, perPage: perPage));
+  }) async {
+    worksByTopicCalls++;
+    lastTopicId = topicId;
+    lastWorksSort = sort;
+    return worksByTopicResult ??
+        Right(Paged(items: const [], total: 0, page: page, perPage: perPage));
+  }
 
   @override
   Future<Either<Failure, Paged<Topic>>> searchTopics({

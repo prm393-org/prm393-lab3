@@ -7,6 +7,35 @@ import 'package:flutter/widgets.dart';
 abstract final class WidgetKeys {
   WidgetKeys._();
 
+  // ── Home (FR 4.2 · Patrol TC2) ────────────────────────────────────
+  static const homeScreen = Key('home_screen');
+  static const homeSearchField = Key('home_search_field');
+  static const homeTopicList = Key('home_topic_list');
+
+  /// Dashboard của topic đã chọn.
+  static const homeDashboard = Key('home_dashboard');
+  static const homeDashboardLoading = Key('home_dashboard_loading');
+  static const homeDashboardError = Key('home_dashboard_error');
+  static const homeDashboardEmpty = Key('home_dashboard_empty');
+  static const homeTrendChart = Key('home_trend_chart');
+  static const homePublications = Key('home_publications');
+
+  // Sáu KPI của FR 4.2.
+  static const homeKpiTotalPublications = Key('home_kpi_total_publications');
+  static const homeKpiAverageCitations = Key('home_kpi_average_citations');
+  static const homeKpiMostActiveYear = Key('home_kpi_most_active_year');
+  static const homeKpiTopAuthor = Key('home_kpi_top_author');
+  static const homeKpiTopJournal = Key('home_kpi_top_journal');
+  static const homeKpiMostInfluential = Key('home_kpi_most_influential');
+
+  /// Bài báo thứ [index] trong danh sách publication của Home — TC3 tap vào đây
+  /// để mở Publication Detail.
+  static Key homePublication(int index) => Key('home_publication_$index');
+
+  // ── Publication Detail (FR 4.3 · Patrol TC3) ──────────────────────
+  static const publicationDetailScreen = Key('publication_detail_screen');
+  static const publicationDetailTitle = Key('publication_detail_title');
+
   // ── Keyword Detail (FR 4.7 · Patrol TC7) ──────────────────────────
   static const keywordDetailScreen = Key('keyword_detail_screen');
   static const keywordDetailHeader = Key('keyword_detail_header');

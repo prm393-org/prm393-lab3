@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/widget_keys.dart';
 import '../../../../core/router/keyword_detail_navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/number_formatter.dart';
@@ -53,6 +54,7 @@ class _PublicationDetailScreenState
     };
 
     return Scaffold(
+      key: WidgetKeys.publicationDetailScreen,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
@@ -128,6 +130,7 @@ class _DetailBody extends StatelessWidget {
                 ],
                 SelectableText(
                   work.title,
+                  key: WidgetKeys.publicationDetailTitle,
                   style: tt.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     height: 1.3,

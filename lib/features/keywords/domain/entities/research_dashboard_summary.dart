@@ -139,6 +139,11 @@ class ResearchDashboardSummary extends Equatable {
   RankedResearchItem? get topAuthor =>
       topAuthors.isEmpty ? null : topAuthors.first;
 
+  /// KPI "Most influential publication" (FR 4.2): bài nhiều trích dẫn nhất.
+  /// [topPapers] đã sắp giảm dần theo `citedByCount` nên lấy phần tử đầu.
+  Work? get mostInfluentialPublication =>
+      topPapers.isEmpty ? null : topPapers.first;
+
   @override
   List<Object?> get props => [
     topic,
