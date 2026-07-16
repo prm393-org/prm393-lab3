@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Present so Sonar SCA can resolve dependency intent (gradle.lockfile /
+  verification-metadata.xml). Metadata/signature checks are off for Flutter
+  plugin resolution, which frequently refreshes transitive artifacts.
+-->
+<verification-metadata xmlns="https://schema.gradle.org/dependency-verification"
+    version="1.3">
+  <configuration>
+    <verify-metadata>false</verify-metadata>
+    <verify-signatures>false</verify-signatures>
+  </configuration>
+</verification-metadata>
