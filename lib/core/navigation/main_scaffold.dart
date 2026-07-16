@@ -72,7 +72,7 @@ class MainScaffold extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: 56,
+            height: 64,
             child: Row(
               children: [
                 for (var i = 0; i < _destinations.length; i++)
@@ -129,36 +129,52 @@ class _NavBarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final nb = Theme.of(context).navigationBarTheme;
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final iconColor = selected
         ? AppColors.white
         : (nb.iconTheme?.resolve({})?.color ?? cs.onSurfaceVariant);
+    final labelColor = selected
+        ? (isDark ? AppColors.darkOnSurface : AppColors.primary)
+        : cs.onSurfaceVariant;
 
     return Semantics(
       button: true,
       selected: selected,
       label: destination.label,
-      child: Tooltip(
-        message: destination.label,
-        child: InkWell(
-          onTap: onTap,
-          child: Center(
-            child: AnimatedContainer(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 56,
-              height: 32,
+              height: 28,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected ? indicatorColor : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 selected ? destination.selectedIcon : destination.icon,
-                size: 22,
+                size: 20,
                 color: iconColor,
               ),
             ),
-          ),
+            const SizedBox(height: 2),
+            Text(
+              destination.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.1,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: labelColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

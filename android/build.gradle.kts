@@ -20,5 +20,7 @@ subprojects {
 }
 
 tasks.register<Delete>("clean") {
+    group = "build"
+    description = "Deletes the build directory for the Flutter Android project."
     delete(rootProject.layout.buildDirectory)
 }
