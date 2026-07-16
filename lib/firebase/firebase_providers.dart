@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'analytics_service.dart';
 import 'auth_service.dart';
 import 'crashlytics_service.dart';
+import 'local_notification_service.dart';
 import 'messaging_service.dart';
 import 'remote_config_service.dart';
 import 'storage_service.dart';
@@ -21,6 +22,10 @@ final storageServiceProvider =
 
 final messagingServiceProvider =
     Provider<MessagingService>((ref) => MessagingService());
+
+final localNotificationServiceProvider = Provider<LocalNotificationService>(
+  (ref) => LocalNotificationService(),
+);
 
 /// `init()` (nạp default + fetch nền) do `main()` gọi một lần trước `runApp`.
 final remoteConfigServiceProvider =

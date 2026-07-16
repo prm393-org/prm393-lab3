@@ -18,10 +18,10 @@ import '../../../keywords/presentation/viewmodels/research_dashboard_viewmodel.d
 import '../../../publication/domain/usecases/search_topics.dart';
 import '../../../shared/presentation/viewmodels/pending_search_viewmodel.dart';
 import '../../../shared/presentation/viewmodels/selected_topic_viewmodel.dart';
-import '../../domain/entities/app_notification.dart';
 import '../viewmodels/notification_center_viewmodel.dart';
 import '../viewmodels/profile_state.dart';
 import '../viewmodels/profile_viewmodel.dart';
+import '../widgets/notification_center_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -346,69 +346,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (ok == true) _viewModel.testCrash();
   }
 
-  Future<void> _showNotificationCenter() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) => Consumer(
-        builder: (ctx, ref, _) {
-          final items = ref.watch(notificationCenterProvider);
-          return SafeArea(
-            key: WidgetKeys.notificationCenterSheet,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Notification Center',
-                          style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      if (items.isNotEmpty)
-                        TextButton(
-                          onPressed: ref
-                              .read(notificationCenterProvider.notifier)
-                              .clear,
-                          child: const Text('Clear'),
-                        ),
-                    ],
-                  ),
-                ),
-                if (items.isEmpty)
-                  const Padding(
-                    key: WidgetKeys.notificationCenterEmpty,
-                    padding: EdgeInsets.fromLTRB(24, 8, 24, 32),
-                    child: Text(
-                      'No notifications yet.\n\nSend one from Firebase Console '
-                      '(Messaging) using this device\'s FCM token.',
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                else
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (_, i) => _NotificationTile(item: items[i]),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Future<void> _showNotificationCenter() =>
+      showNotificationCenterSheet(context);
 
   Future<void> _confirmSignOut() async {
     final ok = await showDialog<bool>(
@@ -580,7 +519,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           key: WidgetKeys.profileNotificationCenter,
                           icon: Icons.inbox_outlined,
                           title: 'Notification Center',
-                          badge: '${notifications.length}',
+                          badge: '${notifications.items.length}',
                           onTap: _showNotificationCenter,
                         ),
                         if (state.fcmToken != null)
@@ -744,38 +683,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ReportExportStatus.error => 'Last export failed — tap to retry',
     ReportExportStatus.idle => 'Builds from the topic analyzed in Keywords',
   };
-}
-
-class _NotificationTile extends StatelessWidget {
-  final AppNotification item;
-
-  const _NotificationTile({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final time = TimeOfDay.fromDateTime(item.receivedAt).format(context);
-
-    return ListTile(
-      leading: Icon(
-        item.receivedInForeground
-            ? Icons.notifications_active_outlined
-            : Icons.open_in_new,
-        size: 20,
-        color: AppColors.secondary,
-      ),
-      title: Text(
-        item.title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      ),
-      subtitle: item.body.isEmpty ? null : Text(item.body),
-      trailing: Text(
-        time,
-        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-      ),
-      isThreeLine: item.body.length > 40,
-    );
-  }
 }
 
 class _UserHeader extends StatelessWidget {

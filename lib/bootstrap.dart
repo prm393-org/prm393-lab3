@@ -28,6 +28,7 @@ Future<Widget> createApp({bool enableCrashlyticsHandlers = false}) async {
     container.read(crashlyticsServiceProvider).registerGlobalHandlers();
   }
   container.read(messagingServiceProvider).init();
+  await container.read(localNotificationServiceProvider).init();
   await container.read(remoteConfigServiceProvider).init();
   container.read(notificationCenterProvider);
 

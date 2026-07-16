@@ -14,6 +14,7 @@ import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../viewmodels/home_state.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../widgets/home_kpi_grid.dart';
+import '../widgets/notification_bell_button.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/topic_card.dart';
 import '../widgets/topic_charts.dart';
@@ -149,6 +150,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+      actions: const [
+        NotificationBellButton(),
+        SizedBox(width: 4),
+      ],
     );
   }
 

@@ -17,6 +17,9 @@ abstract final class WidgetKeys {
   static const navKeywords = Key('nav_keywords');
   static const navProfile = Key('nav_profile');
 
+  // ── Home · Notification bell ──────────────────────────────────────
+  static const homeNotificationBell = Key('home_notification_bell');
+
   // ── Home (FR 4.2 · Patrol TC2) ────────────────────────────────────
   static const homeScreen = Key('home_screen');
   static const homeSearchField = Key('home_search_field');
