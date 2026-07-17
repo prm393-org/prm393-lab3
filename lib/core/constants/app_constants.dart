@@ -27,7 +27,6 @@ class AppConstants {
   static const String prefApiKey = 'pref_api_key';
   static const String prefMailto = 'pref_mailto';
   static const String prefRecentSearches = 'pref_recent_searches';
-  static const String prefSavedTopics = 'pref_saved_topics';
   static const String prefDefaultHomeFilter = 'pref_default_home_filter';
   static const String prefPerPage = 'pref_per_page';
   static const String prefThemeMode = 'pref_theme_mode';

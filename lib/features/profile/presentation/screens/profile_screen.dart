@@ -35,7 +35,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final TextEditingController _mailtoCtrl;
   late final RecentSearchesStore _recentStore;
   bool _fieldsReady = false;
-  int _savedTopicCount = 0;
 
   ProfileViewModel get _viewModel => ref.read(profileViewModelProvider.notifier);
 
@@ -45,7 +44,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _apiKeyCtrl = TextEditingController();
     _mailtoCtrl = TextEditingController();
     _recentStore = ref.read(recentSearchesStoreProvider);
-    _loadLibraryCounts();
   }
 
   @override
@@ -61,14 +59,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _mailtoCtrl.text = state.settings.mailto;
       _fieldsReady = true;
     }
-  }
-
-  void _loadLibraryCounts() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final saved = prefs.getStringList(AppConstants.prefSavedTopics) ?? [];
-    setState(() {
-      _savedTopicCount = saved.length;
-    });
   }
 
   Future<void> _openUrl(String url) async {
@@ -247,7 +237,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Clear cache?'),
         content: const Text(
-          'Remove recent searches, saved topics, and reset the selected topic.',
+          'Remove recent searches and reset the selected topic.',
         ),
         actions: [
           TextButton(
@@ -265,10 +255,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final prefs = ref.read(sharedPreferencesProvider);
     _recentStore.clear();
-    await prefs.remove(AppConstants.prefSavedTopics);
     await prefs.remove(AppConstants.prefLastSync);
     ref.read(selectedTopicProvider.notifier).clear();
-    _loadLibraryCounts();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cache cleared')),
@@ -396,8 +384,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _syncFields(state);
     final settings = state.settings;
     final isSaving = state.status == ProfileStatus.saving;
-    final prefs = ref.read(sharedPreferencesProvider);
-    final savedItems = prefs.getStringList(AppConstants.prefSavedTopics) ?? [];
 
     return Scaffold(
           key: WidgetKeys.profileScreen,
@@ -472,15 +458,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               items: _recentStore.items,
                               onItemTap: _searchFromHistory,
                             ),
-                          ),
-                        ),
-                        _SettingsRow(
-                          icon: Icons.bookmark_outline,
-                          title: 'Saved topics',
-                          badge: '$_savedTopicCount',
-                          onTap: () => _showLibrarySheet(
-                            title: 'Saved topics',
-                            items: savedItems,
                           ),
                         ),
                         _SettingsRow(
