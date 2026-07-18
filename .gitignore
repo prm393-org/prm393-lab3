@@ -54,3 +54,9 @@ app.*.map.json
 # Gradle build reports (do not commit; Sonar was flagging problems-report.html)
 android/build/
 android/.gradle/
+
+# Project report artifacts (local only; excluded from SonarQube analysis)
+PROJECT_REPORT_SAMPLE.html
+PROJECT_REPORT_SAMPLE.md
+PROJECT_REPORT_SAMPLE.pdf
+PROJECT_REPORT.pdf
